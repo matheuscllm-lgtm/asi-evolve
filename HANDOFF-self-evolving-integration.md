@@ -190,13 +190,35 @@ backlog (§6), rode os testes, e só abra/atualize PR draft se os testes passare
 
 ## 6. Backlog priorizado (checklist)
 
+> **Progresso (sessão terminal 2026-06-18):** A2/A3/B1/B2 feitos offline; A0/A1
+> continuam **bloqueados por falta de chave LLM** (`OPENAI_API_KEY` ausente —
+> sem endpoint OpenAI-compatível a evolução não roda). O scaffold do liga_match
+> foi verificado offline (baseline F1 = 0,75, reproduzido).
+
 - [ ] **A0.** Instalar deps + configurar LLM + smoke do `circle_packing_demo` (§2).
+      ⛔ **bloqueado:** sem `OPENAI_API_KEY`/endpoint. Deps e a parte offline OK.
 - [ ] **A1.** Rodar `experiments/liga_match` (§3.1); se superar baseline, PR na Liga.
-- [ ] **B1.** COMC: fundir links em `render_markdown` + atualizar testes + PR (§4).
-- [ ] **A2.** Construir `experiments/myp_match` ligado a `bench.py`/fixtures (§3.2).
-- [ ] **A3.** Construir `experiments/comc_tiers` ligado a `test_matcher.py` (§3.3).
-- [ ] **B2.** Confirmar CardTrader/Liga já no formato; travar com teste se faltar.
-- [ ] **PR-meta.** Manter o PR draft do `asi-evolve` (este handoff + scaffold) atualizado.
+      ⛔ **bloqueado** pela LLM. Evaluator offline já validado (baseline F1 = 0,75).
+- [x] **B1.** COMC: fundir links em `render_markdown` + atualizar testes + PR (§4).
+      ✅ **draft PR `scanner-comc#3`** — coluna única `Links` (`[oferta] · [referência]`),
+      README+CLAUDE.md atualizados, suíte offline 50 verde (reporter 5→7).
+- [x] **A2.** Construir `experiments/myp_match` ligado a `bench.py`/fixtures (§3.2).
+      ✅ scaffold offline — baseline F1 (clean-class) = 0,875 (prec 1.0, rec 0,778).
+- [x] **A3.** Construir `experiments/comc_tiers` ligado a `test_matcher.py` (§3.3).
+      ✅ scaffold offline — baseline F1 (accept/reject) = 0,889 (prec 1.0, rec 0,8).
+- [x] **B2.** Confirmar CardTrader/Liga já no formato; travar com teste se faltar.
+      ✅ ambos já batem **e já travados por teste** — CardTrader 27 verdes
+      (`test_delivery_markdown.py`/`test_ct_myp_model.py`), Liga 10 verdes
+      (`test_markdown.py`). Sem mudança necessária.
+- [x] **PR-meta.** Manter o PR draft do `asi-evolve` (este handoff + scaffold) atualizado.
+      ✅ A2/A3 commitados na branch (PR draft `asi-evolve#1` atualizado).
+
+### Próximo passo (quando houver chave LLM)
+Configurar `OPENAI_API_KEY` + `base_url`/`model` (§2) e então: smoke do
+`circle_packing_demo` (A0) → rodar `liga_match`/`myp_match`/`comc_tiers`
+(`python main.py --experiment <nome> --steps 30 --sample-n 3`) → se um candidato
+superar o baseline de forma robusta, portar o ganho como PR draft no repo do
+scanner. Os três evaluators já rodam offline e dão o baseline a bater.
 
 ---
 

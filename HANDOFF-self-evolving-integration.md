@@ -201,10 +201,13 @@ backlog (§6), rode os testes, e só abra/atualize PR draft se os testes passare
       evoluiu 0,75 → 0,8889. Loop LLM (Researcher/Engineer/Analyzer) + cognição
       + avaliação funcionando. (Pulei o `circle_packing_demo`: o `liga_match` é
       smoke melhor — evaluator offline e do nosso domínio.)
-- [~] **A1.** Rodar `experiments/liga_match` (§3.1); se superar baseline, PR na Liga.
-      ▶️ smoke (4 steps) JÁ superou (0,8889); falta o run cheio (`--steps 30`) e,
-      se robusto, portar o ganho (token-set similarity) pra
-      `liga-cards-scanner/src/matching/`. **Custa crédito OpenAI** — aguardando ok.
+- [x] **A1.** Rodar `experiments/liga_match` (§3.1); se superar baseline, PR na Liga.
+      ✅ run cheio (30 steps) → melhor candidato F1 0,8889 (token-set + containment).
+      Eval enriquecido p/ 33 casos (commit) → candidato 0,898 vs baseline 0,632 (generaliza).
+      Re-run do baseline empacou em 0,649 (evoluir do baseline fraco cai em poço local).
+      **Ganho portado à mão** (ideia, não código LLM — aliases do LLM eram alucinados):
+      **draft PR `liga-cards-scanner#25`** (token-aware score + containment + thr 0,82
+      + aliases reais; F1 33-casos 0,63→0,90, precisão 0,92 mantida; **158 testes verdes**).
 - [x] **B1.** COMC: fundir links em `render_markdown` + atualizar testes + PR (§4).
       ✅ **draft PR `scanner-comc#3`** — coluna única `Links` (`[oferta] · [referência]`),
       README+CLAUDE.md atualizados, suíte offline 50 verde (reporter 5→7).

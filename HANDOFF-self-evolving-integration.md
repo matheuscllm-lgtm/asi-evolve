@@ -222,12 +222,24 @@ backlog (§6), rode os testes, e só abra/atualize PR draft se os testes passare
 - [x] **PR-meta.** Manter o PR draft do `asi-evolve` (este handoff + scaffold) atualizado.
       ✅ A2/A3 commitados na branch (PR draft `asi-evolve#1` atualizado).
 
-### Próximo passo (quando houver chave LLM)
-Configurar `OPENAI_API_KEY` + `base_url`/`model` (§2) e então: smoke do
-`circle_packing_demo` (A0) → rodar `liga_match`/`myp_match`/`comc_tiers`
-(`python main.py --experiment <nome> --steps 30 --sample-n 3`) → se um candidato
-superar o baseline de forma robusta, portar o ganho como PR draft no repo do
-scanner. Os três evaluators já rodam offline e dão o baseline a bater.
+### Resultados dos 3 runs ao vivo (2026-06-18) — 1 port, 2 não
+- **liga_match → PORTADO** (`liga-cards-scanner#25`). Único port limpo: o ganho
+  (token-set + containment + aliases reais + thr 0,82) **manteve a precisão**
+  (0,92) ao subir o recall. Eval enriquecido p/ 33 casos confirmou generalização.
+- **myp_match → SEM GANHO.** Run de 30 steps empacou no baseline 0,875; os 2 FN
+  (supranumerário difícil) exigem feature nova, não ajuste de regra. Não portado.
+- **comc_tiers → NÃO PORTADO (troca precisão↔recall).** Bateu F1 1,0 no eval de 15
+  casos só **baixando os cortes** (90→88, 92→90) — overfit de fronteira. Eval
+  enriquecido p/ 23 casos (com armadilhas de precisão) revelou: F1 sobe (0,78→0,90)
+  **mas precisão cai 0,90→0,81** (3 FP). Conflita com a filosofia precision-first
+  do COMC → não portado. Insight: travar Tier 2 por gap (como o Tier 3) capturaria
+  o recall sem perder precisão — mas é heurística nova, precisa de dado real.
+
+**Lição transversal:** evoluir a partir do baseline fraco/eval pequeno → platô ou
+overfit de fronteira. O caminho que funcionou (liga): evoluir → **enriquecer o eval
+offline** → confirmar que precisão se mantém → só então portar a IDEIA (nunca o
+código LLM cru; aliases vinham alucinados). Para novos ganhos: reseedar a evolução
+a partir do melhor candidato e/ou enriquecer os evals de myp/comc com dado real.
 
 ---
 

@@ -18,3 +18,5 @@ experiments/*/wandb/
 /run_smoke.log
 /eval.log
 /results.json
+
+experiments/*/candidate_*.py

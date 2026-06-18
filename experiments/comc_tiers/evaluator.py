@@ -124,6 +124,50 @@ CASES = [
      "f": {"set_known": True, "number_present": True, "exact_count": 0,
            "name_score": 91.0, "runner_score": 40.0},
      "gold": 0.85},
+
+    # ---- precision/generalization probes (2026-06-18): cases at name_score 86-90,
+    # BALANCED between real matches (recall headroom) and wrong cards that MUST
+    # reject (precision traps). A candidate that wins only by lowering the name
+    # cutoffs will catch the real-86/88s but also wrongly accept the wrong-88/90s,
+    # dropping precision — exposing the tune as boundary-overfit, not generalization. ----
+
+    # real fuzzy matches just under the original cutoffs (should ACCEPT)
+    {"name": "tier2_real_88",
+     "f": {"set_known": True, "number_present": True, "exact_count": 0,
+           "name_score": 88.0, "runner_score": 35.0},
+     "gold": 0.85},
+    {"name": "tier3_real_90",
+     "f": {"set_known": True, "number_present": False, "exact_count": 0,
+           "name_score": 90.0, "runner_score": 30.0},
+     "gold": 0.70},
+
+    # WRONG cards whose best-name fuzzy lands in 86-90 -> MUST REJECT (precision trap)
+    {"name": "tier2_wrong_88_reject",
+     "f": {"set_known": True, "number_present": True, "exact_count": 0,
+           "name_score": 88.0, "runner_score": 80.0},
+     "gold": None},
+    {"name": "tier2_wrong_89_reject",
+     "f": {"set_known": True, "number_present": True, "exact_count": 0,
+           "name_score": 89.0, "runner_score": 84.0},
+     "gold": None},
+    {"name": "tier3_wrong_90_reject",
+     "f": {"set_known": True, "number_present": False, "exact_count": 0,
+           "name_score": 90.0, "runner_score": 88.0},
+     "gold": None},
+    {"name": "tier3_wrong_91_close_runner_reject",
+     "f": {"set_known": True, "number_present": False, "exact_count": 0,
+           "name_score": 91.0, "runner_score": 89.0},
+     "gold": None},
+    # ambiguous: number present, name strong but a near-tie runner -> reject (wrong variant risk)
+    {"name": "tier2_ambiguous_runner_reject",
+     "f": {"set_known": True, "number_present": True, "exact_count": 0,
+           "name_score": 92.0, "runner_score": 90.0},
+     "gold": None},
+    # genuinely strong, clear -> accept (anchor TP so it's not all rejects)
+    {"name": "tier2_strong_95_clear",
+     "f": {"set_known": True, "number_present": True, "exact_count": 0,
+           "name_score": 95.0, "runner_score": 40.0},
+     "gold": 0.85},
 ]
 
 # Tiers the candidate is allowed to emit; used to bucket calibration.

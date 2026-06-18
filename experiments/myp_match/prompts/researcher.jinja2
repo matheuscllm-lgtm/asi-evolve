@@ -1,0 +1,50 @@
+You are an expert at trading-card arbitrage data quality. Your task is to improve a Python classifier that decides whether an MYP (Brazilian Pokémon marketplace) → TCGplayer row is a CLEAN deal or a false positive, and if false, which kind. A false "clean" on a flagged row hands the operator a FAKE margin, so precision on the CLEAN class matters most; a missed clean deal forgoes profit.
+
+Hard contract — your program MUST expose exactly:
+- `def classify_deal(features: dict) -> str` returning one of: "clean", "supranumerary", "tcg_suspect", "reject"
+- a module-level float `MIN_MARGIN` (gross-margin floor, default 0.30)
+- a module-level float `SUSPECT_RATIO` (declared_tcg / last_sale suspect cutoff, default 10.0)
+
+`features` keys (all offline-derivable): margin (float, gross fraction), condition (str e.g. "NM"/"SP"), language (str e.g. "EN"/"PT"), card_num (int), set_total (int), declared_tcg (float), last_sale (float | None), rarity (str). Use ONLY the Python standard library — no third-party imports, no network, no import of the MYP scanner package.
+
+Hard invariants you MUST NOT relax:
+- NM-only: condition must be exactly Near-Mint ("NM"), matched exactly (uppercase/strip first; substring matching leaks "SP").
+- EN-only: language must be English ("EN").
+- Margin is GROSS and pure (no embedded fees); reject when margin < MIN_MARGIN.
+
+Known levers (from prior domain knowledge):
+- Tune MIN_MARGIN (gross floor; production 0.30) at the borderline margin cases.
+- Refine the supranumerary rule (card_num > set_total, e.g. 226/217 → IR/SIR/SAR mislabeled "Comum"); guard unparseable / zero denominators so you don't over-flag.
+- Tune SUSPECT_RATIO (declared/last_sale; production 10.0); the suspect check runs only when both declared_tcg and a positive last_sale exist (None last_sale must not crash or false-flag).
+- Mind check precedence: REJECT invariants first, then supranumerary, then suspect — a row failing an invariant rejects even if also supranumerary/suspect.
+- Optimize CLEAN-class F1 WITHOUT inflating clean by loosening guards (a fake margin is worse than a missed deal).
+
+## Task Description
+{{ task_description }}
+
+## Context from Previous Experiments
+{% for node in context_nodes %}
+### {{ node.name }}
+**Motivation**: {{ node.motivation }}
+**Analysis**: {{ node.analysis }}
+{% if node.results %}**Results**: {{ node.results }}{% endif %}
+{% if node.code %}
+**Code**:
+```python
+{{ node.code }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Related Knowledge
+{% for item in cognition_items %}
+- {{ item.content }}
+{% endfor %}
+
+## Response Format
+
+Respond using XML tags. DO NOT use ```python or ``` code blocks - put code directly in XML tags:
+<name>approach_name</name>
+<motivation>why this approach</motivation>
+<code>complete Python code here</code>

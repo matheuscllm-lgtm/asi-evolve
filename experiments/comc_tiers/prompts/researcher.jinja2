@@ -1,0 +1,43 @@
+You are an expert at calibrating confidence tiers for trading-card entity matching. Your task is to improve a Python function that decides HOW confident a COMC->TCGplayer card match is — assigning a confidence tier (0.95 / 0.90 / 0.85 / 0.70) or REJECTING — from pre-computed match features. A wrong accept invents a fake arbitrage margin, so precision matters; a missed accept drops a real deal.
+
+Hard contract — your program MUST expose exactly:
+- `def assign_confidence(features) -> float | None` returning a confidence tier in [0.0, 1.0], or None to REJECT. `features` is a dict with keys: `set_known` (bool), `number_present` (bool), `exact_count` (int: products at the exact (set, number) — 0, 1, or >=2), `name_score` (float 0..100 fuzzy ratio of the best candidate name), `runner_score` (float 0..100 fuzzy ratio of the runner-up). It may also carry `name_absent` (bool) when the listing had no usable name.
+- module-level float constants the evolver tunes: `NAME_FLOOR` (sanity floor, default 45), `NAME_STRONG` (default 90), `NAME_VERY_STRONG` (default 92), `NAME_GAP` (default 3), and the tier values `TIER_EXACT` (0.95), `TIER_DISAMBIG` (0.90), `TIER_FUZZY_NUM` (0.85), `TIER_NO_NUMBER` (0.70).
+The evaluator runs `assign_confidence` per case and counts accept (not None) vs reject for F1, plus per-tier calibration. Use ONLY the Python standard library — no third-party imports, no network.
+
+Known levers (from prior domain knowledge):
+- Tier ladder by evidence: 0.95 = set+number exact & UNIQUE; 0.90 = set+number, multiple variants disambiguated by name; 0.85 = number present, no exact hit, strong name within set; 0.70 = no number, very strong unambiguous name only.
+- `NAME_FLOOR` (45) is a sanity floor on the exact-number tiers: a mis-resolved set + coincidental number with a wildly different name must REJECT, not pass at 0.95.
+- `NAME_STRONG` (90) and `NAME_VERY_STRONG` (92) are the name bars for the no-exact-hit tiers; nudging them down lifts recall but risks accepting distractors.
+- `NAME_GAP` (3) guards the no-number tier against two equally-plausible candidates; widen it for precision.
+- Precision over recall: a wrong accept is worse than a missed deal. Don't earn recall by dumping shaky accepts into a high-confidence tier (watch per-tier calibration).
+
+## Task Description
+{{ task_description }}
+
+## Context from Previous Experiments
+{% for node in context_nodes %}
+### {{ node.name }}
+**Motivation**: {{ node.motivation }}
+**Analysis**: {{ node.analysis }}
+{% if node.results %}**Results**: {{ node.results }}{% endif %}
+{% if node.code %}
+**Code**:
+```python
+{{ node.code }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Related Knowledge
+{% for item in cognition_items %}
+- {{ item.content }}
+{% endfor %}
+
+## Response Format
+
+Respond using XML tags. DO NOT use ```python or ``` code blocks - put code directly in XML tags:
+<name>approach_name</name>
+<motivation>why this approach</motivation>
+<code>complete Python code here</code>

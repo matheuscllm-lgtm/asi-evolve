@@ -12,9 +12,9 @@ experiment_name: "comc_tiers"
 # -----------------------------------------------------------------------------
 api:
   provider: "openai"
-  base_url: "your_base_url"      # e.g. https://api.openai.com/v1
-  api_key: "${OPENAI_API_KEY}"   # or paste a literal key (do NOT commit it)
-  model: "your_model"            # e.g. gpt-4o, or your local model name
+  base_url: "https://api.openai.com/v1"
+  api_key: "${OPENAI_API_KEY}"   # env var (persisted, User scope) — never commit a literal key
+  model: "gpt-4o"
   temperature: 0.6
   top_p: 0.95
   max_tokens: 16384

@@ -7,6 +7,19 @@
 set -e
 set -o pipefail
 
+# The framework runs this via `bash eval.sh`, but `python3` may be NATIVE Windows
+# Python (Git Bash / MSYS), which cannot open MSYS paths like /c/Users/...; it
+# would write results.json to a different physical path than bash reads, and the
+# error trap would then clobber a good score with the 0.0 fallback. cygpath -m
+# yields a forward-slash mixed path (C:/Users/...) that both the shell and a
+# Python string handle. On Linux cygpath is absent and the path passes through.
+to_native() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
+
+# Resolve a Python interpreter robustly. On Windows the bare `python3` may be a
+# disabled Microsoft Store stub; `python` is the real interpreter. The evaluator
+# is pure-stdlib, so any Python 3 works; fall back to python3 (e.g. on Linux).
+if command -v python >/dev/null 2>&1; then PY=python; else PY=python3; fi
+
 STEP_DIR="$(pwd)"
 # evaluator.py lives next to this script, so derive EXPERIMENT_DIR from the
 # script location — robust both for real runs (cwd = steps/step_N) and for a
@@ -49,10 +62,10 @@ if [ ! -f "$EVALUATOR_PY" ]; then
     exit 1
 fi
 
-python3 "$EVALUATOR_PY" "$SRC_CODE_FILE" "$RESULT_JSON" >> "$LOG_FILE" 2>&1
+"$PY" "$(to_native "$EVALUATOR_PY")" "$(to_native "$SRC_CODE_FILE")" "$(to_native "$RESULT_JSON")" >> "$LOG_FILE" 2>&1
 
 if [ -f "$RESULT_JSON" ]; then
-    eval_score=$(python3 -c "import json; print(json.load(open('$RESULT_JSON')).get('eval_score', 0.0))")
+    eval_score=$("$PY" -c "import json; print(json.load(open('$(to_native "$RESULT_JSON")')).get('eval_score', 0.0))")
     echo "  F1 (eval_score): ${eval_score}"
 fi
 exit 0

@@ -12,3 +12,9 @@ experiments/*/steps/
 experiments/*/logs/
 experiments/*/pipeline_state.json
 experiments/*/wandb/
+
+# venv + local run artifacts (Windows smoke)
+.venv/
+/run_smoke.log
+/eval.log
+/results.json

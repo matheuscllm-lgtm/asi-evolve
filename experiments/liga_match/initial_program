@@ -1,0 +1,65 @@
+"""Baseline Liga<->TCG matching scorer.
+
+Faithful port of the production logic in
+`liga-cards-scanner/src/matching/{card_matcher,normalization}.py`
+(NAME_WEIGHT 0.7 / SET_WEIGHT 0.3, difflib ratio, threshold 0.85).
+
+Contract (do not change): expose `score_match(...)` and `FUZZY_THRESHOLD`.
+Pure stdlib so the evaluator runs offline and deterministically.
+"""
+import difflib
+import re
+import unicodedata
+
+NAME_WEIGHT = 0.7
+SET_WEIGHT = 0.3
+FUZZY_THRESHOLD = 0.85
+
+# Short set codes / aliases -> canonical name (lowercase, no accents).
+SET_ALIASES = {
+    "obf": "obsidian flames",
+    "lor": "lost origin",
+    "stb": "silver tempest",
+    "fst": "fusion strike",
+    "viv": "vivid voltage",
+    "pal": "paldea evolved",
+    "sv": "scarlet & violet",
+    "s&v": "scarlet & violet",
+}
+
+
+def _strip_accents(s):
+    nfkd = unicodedata.normalize("NFKD", s)
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
+
+
+def _normalize_text(s):
+    if not s:
+        return ""
+    s = _strip_accents(s).lower()
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _normalize_card_name(name):
+    s = _normalize_text(name)
+    s = s.replace("v-max", "vmax").replace("v max", "vmax")
+    s = s.replace("v-star", "vstar").replace("v star", "vstar")
+    s = s.replace("v-union", "vunion").replace("v union", "vunion")
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _normalize_set_name(set_name):
+    s = _normalize_text(set_name)
+    return SET_ALIASES.get(s, s)
+
+
+def score_match(offer_name, offer_set, cand_name, cand_set):
+    """Combined similarity in [0,1]: 0.7*name_ratio + 0.3*set_ratio."""
+    on = _normalize_card_name(offer_name)
+    cn = _normalize_card_name(cand_name)
+    os_ = _normalize_set_name(offer_set)
+    cs = _normalize_set_name(cand_set)
+    name_score = difflib.SequenceMatcher(None, on, cn).ratio()
+    set_score = difflib.SequenceMatcher(None, os_, cs).ratio()
+    return NAME_WEIGHT * name_score + SET_WEIGHT * set_score

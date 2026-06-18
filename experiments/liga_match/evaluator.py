@@ -79,6 +79,93 @@ CASES = [
      "cands": [("Mewtwo", "Scarlet & Violet Promo"),
                ("Mew", "Scarlet & Violet Promo")],
      "gold": None},
+
+    # ---- enriched set (2026-06-18): more real Liga<->TCG gotchas + precision
+    # traps, to push generalization past the original 11-case ceiling. The reject
+    # cases (ex-significance, shared-token distractors) punish a scorer that wins
+    # on recall by over-accepting — so a candidate must keep precision to score. ----
+
+    # alias-expansion TPs (short codes -> canonical set names)
+    {"offer": ("Gholdengo ex", "PAR"),
+     "cands": [("Gholdengo ex", "Paradox Rift"), ("Gholdengo ex", "Paldea Evolved")],
+     "gold": 0},
+    {"offer": ("Greninja ex", "TWM"),
+     "cands": [("Greninja ex", "Twilight Masquerade"), ("Greninja ex", "Paldea Evolved")],
+     "gold": 0},
+    {"offer": ("Pecharunt ex", "SFA"),
+     "cands": [("Pecharunt ex", "Shrouded Fable"), ("Pecharunt ex", "Surging Sparks")],
+     "gold": 0},
+    {"offer": ("Terapagos ex", "SCR"),
+     "cands": [("Terapagos ex", "Stellar Crown"), ("Terapagos ex", "Surging Sparks")],
+     "gold": 0},
+    {"offer": ("Hop's Zacian ex", "JTG"),
+     "cands": [("Hop's Zacian ex", "Journey Together"), ("Hop's Zacian ex", "Surging Sparks")],
+     "gold": 0},
+    {"offer": ("Tatsugiri", "TEF"),
+     "cands": [("Tatsugiri", "Temporal Forces"), ("Tatsugiri", "Paldea Evolved")],
+     "gold": 0},
+
+    # 151 / token-subset set names (MEW code, missing '&', subset)
+    {"offer": ("Mew ex", "MEW"),
+     "cands": [("Mew ex", "Scarlet & Violet 151"), ("Mew", "Scarlet & Violet 151")],
+     "gold": 0},
+    {"offer": ("Snorlax", "151"),
+     "cands": [("Snorlax", "Scarlet & Violet 151"), ("Snorlax", "Base Set")],
+     "gold": 0},
+    {"offer": ("Pikachu", "Scarlet Violet 151"),
+     "cands": [("Pikachu", "Scarlet & Violet 151"), ("Pikachu", "Surging Sparks")],
+     "gold": 0},
+
+    # ex / V significance: pick the matching variant, not the base card
+    {"offer": ("Roaring Moon ex", "Paradox Rift"),
+     "cands": [("Roaring Moon ex", "Paradox Rift"), ("Roaring Moon", "Paradox Rift")],
+     "gold": 0},
+    {"offer": ("Charizard ex", "Obsidian Flames"),
+     "cands": [("Charizard", "Obsidian Flames"), ("Charizard ex", "Obsidian Flames")],
+     "gold": 1},
+    {"offer": ("Lugia VSTAR", "Silver Tempest"),
+     "cands": [("Lugia VSTAR", "Silver Tempest"), ("Lugia V", "Silver Tempest")],
+     "gold": 0},
+
+    # accents / punctuation / trainer / energy
+    {"offer": ("Flabébé", "PAL"),
+     "cands": [("Flabebe", "Paldea Evolved"), ("Floette", "Paldea Evolved")],
+     "gold": 0},
+    {"offer": ("Mr. Mime", "Base Set"),
+     "cands": [("Mr Mime", "Base Set"), ("Mime Jr.", "Base Set")],
+     "gold": 0},
+    {"offer": ("Professor's Research", "SVI"),
+     "cands": [("Professor's Research", "Scarlet & Violet"), ("Boss's Orders", "Scarlet & Violet")],
+     "gold": 0},
+    {"offer": ("Basic Fire Energy", "SVI"),
+     "cands": [("Basic Fire Energy", "Scarlet & Violet"), ("Basic Water Energy", "Scarlet & Violet")],
+     "gold": 0},
+
+    # MUST REJECT: ex offered but only the base (non-ex) card is present
+    {"offer": ("Pikachu ex", "SSP"),
+     "cands": [("Pikachu", "Surging Sparks"), ("Raichu", "Surging Sparks")],
+     "gold": None},
+    {"offer": ("Cinderace", "SSP"),
+     "cands": [("Cinderace ex", "Surging Sparks"), ("Raboot", "Surging Sparks")],
+     "gold": None},
+
+    # MUST REJECT: wrong Pokémon within the right set
+    {"offer": ("Umbreon ex", "PRE"),
+     "cands": [("Espeon ex", "Prismatic Evolutions"), ("Leafeon ex", "Prismatic Evolutions")],
+     "gold": None},
+
+    # MUST REJECT: exact name but only wrong-set distractors
+    {"offer": ("Charizard ex", "OBF"),
+     "cands": [("Charizard ex", "Paldea Evolved"), ("Charizard ex", "Paradox Rift")],
+     "gold": None},
+
+    # MUST REJECT: shared-token distractors (precision trap for token scorers)
+    {"offer": ("Great Ball", "PAL"),
+     "cands": [("Ultra Ball", "Paldea Evolved"), ("Nest Ball", "Paldea Evolved")],
+     "gold": None},
+    {"offer": ("Iron Hands ex", "PAR"),
+     "cands": [("Iron Valiant ex", "Paradox Rift"), ("Iron Bundle", "Paradox Rift")],
+     "gold": None},
 ]
 
 

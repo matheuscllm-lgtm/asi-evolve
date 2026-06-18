@@ -1,0 +1,92 @@
+"""Baseline MYP deal / false-positive classifier.
+
+Faithful, self-contained port of the production rules in
+`myp-arbitrage-scanner/myp_arbitrage_scanner.py` (the supranumerary H3 heuristic
+`card_num > set_total`, the TCG-suspect ratio check
+`TCG_SUSPECT_RATIO_THRESHOLD`, the NM-only and EN-only hard invariants, and the
+gross-margin floor). No import of the scanner package, no network — pure stdlib
+so the evaluator runs offline and deterministically.
+
+Contract (do NOT change): expose `classify_deal(features: dict) -> str` returning
+one of {"clean", "supranumerary", "tcg_suspect", "reject"}, plus the module-level
+tunable constants MIN_MARGIN and SUSPECT_RATIO.
+
+A false "clean" on a flagged row hands the operator a FAKE margin — precision on
+the CLEAN class is the costly axis. NM-only & EN-only are hard invariants; margin
+is GROSS (no embedded fees); the R$50 floor is a relevance filter applied upstream,
+not part of this contract.
+"""
+
+# ── Tunable constants (the evolvable levers) ─────────────────────────────────
+# Gross margin floor (fraction). Production default is 30%.
+MIN_MARGIN = 0.30
+
+# TCG-suspect ratio: declared TCG price / last observed sale. At/above this the
+# declared price is treated as a probable MYP `.estat-tcg` mis-map (fake margin).
+# Faithful to the scanner's TCG_SUSPECT_RATIO_THRESHOLD = 10.0.
+SUSPECT_RATIO = 10.0
+
+# Conditions accepted by the NM-only invariant (exact match, not substring).
+_NM_CONDITION = "NM"
+
+# Languages accepted by the EN-only invariant.
+_EN_LANGUAGE = "EN"
+
+
+def classify_deal(features: dict) -> str:
+    """Classify an MYP->TCG row.
+
+    Returns one of: "clean", "supranumerary", "tcg_suspect", "reject".
+
+    features keys (all derivable offline):
+      margin: float            # gross margin fraction (e.g. 0.42)
+      condition: str           # "NM", "SP", ...
+      language: str            # "EN", "PT", ...
+      card_num: int            # collector number
+      set_total: int           # set size denominator
+      declared_tcg: float      # TCG price declared by source
+      last_sale: float | None  # last observed sale (suspect signal)
+      rarity: str
+    """
+    condition = (features.get("condition") or "").strip().upper()
+    language = (features.get("language") or "").strip().upper()
+    margin = features.get("margin")
+
+    # ── Hard invariants + margin floor → REJECT ──────────────────────────────
+    # NM-only: exact condition match (substring matching leaked "SP" historically).
+    if condition != _NM_CONDITION:
+        return "reject"
+    # EN-only: domestic arbitrage targets the English TCGplayer reference price.
+    if language != _EN_LANGUAGE:
+        return "reject"
+    # Gross-margin floor: below the threshold there is no deal worth surfacing.
+    if margin is None or margin < MIN_MARGIN:
+        return "reject"
+
+    # ── Supranumerary: collector number exceeds the set denominator ───────────
+    # card_num > set_total (e.g. 226/217) means an IR/SIR/SAR variant that MYP
+    # mislabels "Comum" — its margin is suspect (variant misclassification).
+    card_num = features.get("card_num")
+    set_total = features.get("set_total")
+    if (
+        isinstance(card_num, int)
+        and isinstance(set_total, int)
+        and set_total > 0
+        and card_num > set_total
+    ):
+        return "supranumerary"
+
+    # ── TCG-suspect: declared TCG price dwarfs the last real sale ─────────────
+    # A declared price >> last sale is a probable .estat-tcg mis-map → fake margin.
+    declared_tcg = features.get("declared_tcg")
+    last_sale = features.get("last_sale")
+    if (
+        last_sale is not None
+        and last_sale > 0
+        and declared_tcg is not None
+        and declared_tcg / last_sale >= SUSPECT_RATIO
+    ):
+        return "tcg_suspect"
+
+    # ── Survives every guard → a genuine CLEAN deal ──────────────────────────
+    return "clean"

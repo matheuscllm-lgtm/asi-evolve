@@ -1,0 +1,43 @@
+You are an expert at fuzzy entity matching for trading-card data. Your task is to improve a Python scorer that decides whether a Brazilian "Liga" marketplace offer refers to the same card as a TCGplayer reference, using only (card name, set name) text on each side. A wrong match invents a fake arbitrage margin, so precision matters; a missed match drops a real deal.
+
+Hard contract — your program MUST expose exactly:
+- `def score_match(offer_name, offer_set, cand_name, cand_set) -> float` returning a similarity in [0.0, 1.0]
+- a module-level float `FUZZY_THRESHOLD` (acceptance cutoff)
+The evaluator picks, per offer, the highest-scoring candidate and accepts it iff its score >= FUZZY_THRESHOLD. Use ONLY the Python standard library (e.g. `difflib`, `re`, `unicodedata`) — no third-party imports, no network.
+
+Known levers (from prior domain knowledge):
+- Expand set-code aliases (PRE, SSP, JTG, TWM, SCR, OBF, 151, ...) to canonical names.
+- Normalize hard: lowercase, strip accents, drop punctuation, collapse whitespace, fold V-MAX/V-STAR/V-UNION.
+- Treat the 'ex' token as significant ("Charizard ex" != "Charizard").
+- Consider token-aware set similarity (token-set / containment) so a short code or subset set name still matches.
+- Tune FUZZY_THRESHOLD last, carefully — reject cases punish a threshold set too low.
+
+## Task Description
+{{ task_description }}
+
+## Context from Previous Experiments
+{% for node in context_nodes %}
+### {{ node.name }}
+**Motivation**: {{ node.motivation }}
+**Analysis**: {{ node.analysis }}
+{% if node.results %}**Results**: {{ node.results }}{% endif %}
+{% if node.code %}
+**Code**:
+```python
+{{ node.code }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Related Knowledge
+{% for item in cognition_items %}
+- {{ item.content }}
+{% endfor %}
+
+## Response Format
+
+Respond using XML tags. DO NOT use ```python or ``` code blocks - put code directly in XML tags:
+<name>approach_name</name>
+<motivation>why this approach</motivation>
+<code>complete Python code here</code>

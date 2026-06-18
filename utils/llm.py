@@ -1,6 +1,7 @@
 """LLM client utilities."""
 
 import json
+import os
 import re
 import threading
 import time
@@ -286,6 +287,27 @@ class LLMClient:
             self.logger.warning(f"Failed to write LLM call log: {e}")
 
 
+def _resolve_env(value: Any) -> Any:
+    """Expand ${VAR} / $VAR references from the environment in a string config value.
+
+    The config files document that `api_key` (or any string) may be given as
+    `${OPENAI_API_KEY}` and read from the environment, but nothing expanded it —
+    the literal `${OPENAI_API_KEY}` would otherwise be sent to the API and 401.
+    `os.path.expandvars` resolves both `$VAR` and `${VAR}` against `os.environ`;
+    if the referenced variable is unset it leaves the text unchanged, so we raise
+    a clear error instead of failing later with an opaque auth error.
+    """
+    if not isinstance(value, str) or "$" not in value:
+        return value
+    expanded = os.path.expandvars(value)
+    if "${" in expanded or (expanded.startswith("$") and expanded == value):
+        raise ValueError(
+            f"Config references an unset environment variable: {value!r}. "
+            "Set it (e.g. export OPENAI_API_KEY=...) before running."
+        )
+    return expanded
+
+
 def create_llm_client(config: Dict[str, Any]) -> LLMClient:
     """Create an `LLMClient` from the top-level config dictionary."""
     api_config = config.get("api", {})
@@ -293,8 +315,8 @@ def create_llm_client(config: Dict[str, Any]) -> LLMClient:
     framework_keys = {"provider", "base_url", "api_key", "model", "timeout", "retry_times", "retry_delay"}
 
     framework_params = {
-        "api_key": api_config.get("api_key", "EMPTY"),
-        "base_url": api_config.get("base_url", "https://api.openai.com/v1"),
+        "api_key": _resolve_env(api_config.get("api_key", "EMPTY")),
+        "base_url": _resolve_env(api_config.get("base_url", "https://api.openai.com/v1")),
         "model": api_config.get("model", "default"),
         "timeout": api_config.get("timeout", 120),
         "retry_times": api_config.get("retry_times", 3),

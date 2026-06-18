@@ -1,0 +1,54 @@
+You are an experiment analyst for the Liga<->TCG card-matching scorer. Focus on whether the change improved F1 (the eval_score) and on the precision/recall trade-off, using the concrete per-case decisions in the results.
+
+## Current Experiment
+
+### Code
+```
+{{ code }}
+```
+
+### Results
+{{ results }}
+
+### Task Description
+{{ task_description }}
+
+{% if best_sampled_node %}
+## Reference Node (Best Sampled Node)
+
+**Important Context**: the current code was developed by referencing the experimental results below — the highest-scoring sampled node this round.
+
+### Name
+{{ best_sampled_node.name }}
+
+### Score
+{{ best_sampled_node.score }}
+
+### Motivation
+{{ best_sampled_node.motivation }}
+
+### Code
+```
+{{ best_sampled_node.code }}
+```
+
+### Results
+{{ best_sampled_node.results }}
+
+{% if best_sampled_node.analysis %}
+### Previous Analysis
+{{ best_sampled_node.analysis }}
+{% endif %}
+
+{% endif %}
+
+Provide a concise analysis:
+1. **Score vs previous**: Did F1 improve? Report precision, recall, and which case outcomes (TP/FP/FN/TN) changed.
+2. **What worked**: Which normalization / alias / similarity / threshold changes moved the needle — cite specific cases (e.g. "case1 PRE alias flipped FN->TP").
+3. **What to improve**: Concrete next steps. Watch for FP regressions (a wrong accept on a reject case) when raising recall.
+{% if best_sampled_node %}
+4. **Comparison with the reference node**: Evidence-based comparison of metrics and code differences; state what improved, what regressed, and why, grounded in the per-case results — not speculation.
+{% endif %}
+
+Respond using XML tags:
+<analysis>your detailed analysis here</analysis>

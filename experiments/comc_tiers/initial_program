@@ -1,0 +1,87 @@
+"""Baseline COMC->TCG confidence-tier calibration.
+
+Faithful port of the production tier logic in
+`scanner-comc/comc_scanner/matcher.py::match` (the confidence-assignment part).
+Given pre-computed match features (set resolution, collector-number presence,
+exact-count at (set,number), and fuzzy name scores), decide the confidence tier
+of a candidate COMC->TCGplayer match, or REJECT (return None).
+
+Tiers (confidence):
+  0.95  set + collector number exact, UNIQUE product -> name affinity >= NAME_FLOOR (or absent)
+  0.90  set + number, >= 2 variants -> best-name disambiguation, name >= NAME_FLOOR
+  0.85  set known, number present but no exact hit -> name fuzzy >= NAME_STRONG within set
+  0.70  set known, NO number -> name fuzzy >= NAME_VERY_STRONG and (best - runner) >= NAME_GAP
+  None  set unknown / no confident name -> REJECT
+
+`name_score` / `runner_score` are difflib-style fuzzy ratios on a 0..100 scale,
+like `comc_scanner.normalize.fuzzy_ratio`.
+
+Contract (do not change): expose `assign_confidence(features)` and the
+module-level threshold constants. Pure stdlib so the evaluator runs offline and
+deterministically.
+"""
+
+# --- Tunable thresholds (the evolver's levers) -------------------------------
+# Sanity floor: a mis-resolved set + a coincidental number must NOT pass with a
+# wildly different name (real COMC "Pokemon" listings include Topps/Bandai whose
+# set strings can resolve loosely). Require a minimal name affinity.
+NAME_FLOOR = 45.0
+# Number present but no exact (set,number) hit -> require a strong name match.
+NAME_STRONG = 90.0
+# No number at all -> require a VERY strong, unambiguous name match...
+NAME_VERY_STRONG = 92.0
+# ...and clearly ahead of the runner-up by this margin.
+NAME_GAP = 3.0
+
+# --- Tier confidence values --------------------------------------------------
+TIER_EXACT = 0.95        # set + number exact, unique
+TIER_DISAMBIG = 0.90     # set + number, multiple variants, name disambiguates
+TIER_FUZZY_NUM = 0.85    # number present, no exact hit, strong name within set
+TIER_NO_NUMBER = 0.70    # no number, very strong unambiguous name
+
+
+def assign_confidence(features):
+    """Return the match confidence tier (0.95/0.90/0.85/0.70 or any value in
+    [0,1]) for a candidate COMC->TCG match, or None to REJECT.
+
+    `features` keys:
+      set_known: bool         # did the set string resolve to a known TCG set?
+      number_present: bool     # did the listing carry a usable collector number?
+      exact_count: int         # products at exact (set, number): 0, 1, or >=2
+      name_score: float        # 0..100 fuzzy ratio of best candidate name
+      runner_score: float      # 0..100 fuzzy ratio of runner-up
+      name_absent: bool        # optional; listing carried no usable name at all
+    """
+    set_known = bool(features.get("set_known"))
+    number_present = bool(features.get("number_present"))
+    exact_count = int(features.get("exact_count", 0))
+    name_score = float(features.get("name_score", 0.0))
+    runner_score = float(features.get("runner_score", 0.0))
+    name_absent = bool(features.get("name_absent"))
+
+    # set unknown -> never trust the match
+    if not set_known:
+        return None
+
+    if number_present:
+        # Tier 1: exact set + number, exactly one product (unique & decisive).
+        # The number is decisive, so a missing listing name still passes; a present
+        # name only has to clear the sanity floor (guards a mis-resolved set).
+        if exact_count == 1:
+            if name_absent or name_score >= NAME_FLOOR:
+                return TIER_EXACT
+        # Tier 1': exact set + number, multiple variants disambiguated by name.
+        elif exact_count >= 2:
+            if name_score >= NAME_FLOOR:
+                return TIER_DISAMBIG
+
+        # Tier 2: number present but no exact (set,number) hit -> strong name.
+        if name_score >= NAME_STRONG:
+            return TIER_FUZZY_NUM
+        return None
+
+    # Tier 3: no number -> very strong, unambiguous name match required.
+    if name_score >= NAME_VERY_STRONG and (name_score - runner_score) >= NAME_GAP:
+        return TIER_NO_NUMBER
+
+    return None

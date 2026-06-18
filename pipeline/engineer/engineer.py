@@ -1,6 +1,7 @@
 """Engineer agent implementation."""
 
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -116,8 +117,13 @@ class Engineer(BaseAgent):
         """Run the benchmark evaluator with timeout handling."""
         process = None
         try:
+            # The bare name "bash" is hijacked on Windows by the WSL launcher
+            # (System32\bash.exe) / a Store app-execution alias, which fails when no
+            # WSL distro is provisioned. ASI_EVOLVE_BASH lets the operator point at a
+            # real POSIX bash (e.g. Git Bash: C:\Program Files\Git\bin\bash.exe).
+            bash_exe = os.environ.get("ASI_EVOLVE_BASH", "bash")
             process = subprocess.Popen(
-                ["bash", script_path],
+                [bash_exe, script_path],
                 cwd=cwd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

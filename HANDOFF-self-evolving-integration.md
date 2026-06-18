@@ -190,15 +190,21 @@ backlog (§6), rode os testes, e só abra/atualize PR draft se os testes passare
 
 ## 6. Backlog priorizado (checklist)
 
-> **Progresso (sessão terminal 2026-06-18):** A2/A3/B1/B2 feitos offline; A0/A1
-> continuam **bloqueados por falta de chave LLM** (`OPENAI_API_KEY` ausente —
-> sem endpoint OpenAI-compatível a evolução não roda). O scaffold do liga_match
-> foi verificado offline (baseline F1 = 0,75, reproduzido).
+> **Progresso (sessão terminal 2026-06-18):** A2/A3/B1/B2 feitos; **A0 ✅ e a
+> evolução RODANDO** com chave OpenAI (gpt-4o). Smoke do `liga_match` validado
+> ponta-a-ponta: nó inicial = baseline real 0,75 → candidato evoluído **0,8889**
+> (token-set similarity + threshold 0,82; recall 0,667→0,889). Ver §9 (runbook
+> Windows) — 4 bugs reais foram corrigidos pra chegar aqui.
 
-- [ ] **A0.** Instalar deps + configurar LLM + smoke do `circle_packing_demo` (§2).
-      ⛔ **bloqueado:** sem `OPENAI_API_KEY`/endpoint. Deps e a parte offline OK.
-- [ ] **A1.** Rodar `experiments/liga_match` (§3.1); se superar baseline, PR na Liga.
-      ⛔ **bloqueado** pela LLM. Evaluator offline já validado (baseline F1 = 0,75).
+- [x] **A0.** Instalar deps + configurar LLM + smoke. ✅ deps no `.venv`, chave
+      OpenAI persistida (Windows User var), modelo `gpt-4o`. Smoke `liga_match`
+      evoluiu 0,75 → 0,8889. Loop LLM (Researcher/Engineer/Analyzer) + cognição
+      + avaliação funcionando. (Pulei o `circle_packing_demo`: o `liga_match` é
+      smoke melhor — evaluator offline e do nosso domínio.)
+- [~] **A1.** Rodar `experiments/liga_match` (§3.1); se superar baseline, PR na Liga.
+      ▶️ smoke (4 steps) JÁ superou (0,8889); falta o run cheio (`--steps 30`) e,
+      se robusto, portar o ganho (token-set similarity) pra
+      `liga-cards-scanner/src/matching/`. **Custa crédito OpenAI** — aguardando ok.
 - [x] **B1.** COMC: fundir links em `render_markdown` + atualizar testes + PR (§4).
       ✅ **draft PR `scanner-comc#3`** — coluna única `Links` (`[oferta] · [referência]`),
       README+CLAUDE.md atualizados, suíte offline 50 verde (reporter 5→7).
@@ -241,3 +247,37 @@ scanner. Os três evaluators já rodam offline e dão o baseline a bater.
 - Liga: `~/liga-cards-scanner` (`src/matching/card_matcher.py`, `src/reporting/markdown.py`, `pytest` 158)
 - COMC: `~/scanner-comc` (`comc_scanner/reporter.py`, `comc_scanner/matcher.py`, `tests/test_reporter.py`)
 - CardTrader: `~/card-trader-scanner` (`cardtrader_postprocess.py`)
+
+---
+
+## 9. Runbook Windows (como rodar a evolução nesta máquina) — 2026-06-18
+
+Validado nesta máquina (Windows 10, sem GPU). O `.venv` já existe com as deps.
+**4 bugs reais** foram corrigidos pra chegar a um run que pontua de verdade
+(commits nesta branch): expansão de `${ENV_VAR}` em `utils/llm.py`; `eval.sh`
+(cygpath p/ paths MSYS→Windows + `python` em vez de `python3` stub da Store);
+`engineer` aceita `ASI_EVOLVE_BASH` (o `bash` nu vira WSL e falha com HCS
+0x800705aa). Detalhe abaixo do que **persiste sozinho** vs. o que passar **por run**.
+
+**Já persistido (User env vars — toda sessão nova herda, não re-setar):**
+- `OPENAI_API_KEY` (chave OpenAI) · `ASI_EVOLVE_BASH=C:\Program Files\Git\bin\bash.exe`
+- `HF_HUB_OFFLINE=1` + `TRANSFORMERS_OFFLINE=1` — o downloader do HuggingFace
+  **trava em 0 bytes** nesta máquina (não é rede: `curl` baixa a ~1 MB/s; é o
+  cliente do hub). O modelo de embedding `all-MiniLM-L6-v2` já foi baixado via
+  `curl` pro cache (`~/.cache/huggingface/hub/...`); offline lê do cache em 0,4s.
+  Se faltar o modelo um dia: `curl` os arquivos do repo HF pro snapshot do cache.
+
+**Comando que funciona (PowerShell):**
+```powershell
+cd C:\Users\mathe\asi-evolve
+$env:OPENAI_API_KEY      = [Environment]::GetEnvironmentVariable('OPENAI_API_KEY','User')
+$env:ASI_EVOLVE_BASH     = 'C:\Program Files\Git\bin\bash.exe'
+$env:HF_HUB_OFFLINE='1'; $env:TRANSFORMERS_OFFLINE='1'
+# --eval-script É OBRIGATÓRIO e ABSOLUTO (sem ele a avaliação não roda → tudo 0.0;
+# o engineer roda o eval com cwd=steps/step_N, então caminho relativo não acha):
+.venv\Scripts\python.exe -u main.py --experiment liga_match --steps 30 --sample-n 3 `
+  --eval-script "C:/Users/mathe/asi-evolve/experiments/liga_match/eval.sh"
+```
+Trocar `liga_match` por `myp_match` / `comc_tiers` (e o caminho do `--eval-script`).
+Logs do framework vão pra `experiments/<exp>/logs/` e por step em
+`experiments/<exp>/steps/step_N/`. O melhor nó fica em `steps/best/`.

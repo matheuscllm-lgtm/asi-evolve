@@ -1,0 +1,49 @@
+You are an expert at trading-card arbitrage data quality. Your task is to improve a Python classifier that decides whether a CardTrader (European Pokémon marketplace) → TCGplayer row is a buy: COMPRA (buy), REVISAR (manual review), or NAO (skip). A false COMPRA on an inflated or mis-mapped row hands the operator a FAKE margin (CardTrader's historical false-positive rate was ~76%), so precision on the COMPRA class matters most; a missed clean deal forgoes profit.
+
+Hard contract — your program MUST expose exactly:
+- `def classify_decision(features: dict) -> str` returning one of: "COMPRA", "REVISAR", "NAO"
+- module-level floats: `MIN_NET_MARGIN` (default 0.25), `MIN_LUCRO` (default 50.0), `REVISAR_MIN_NET` (default 0.20), `MODEST_MIN_NET` (default 0.30), `MARKUP_ANOMALY` (default 0.45)
+
+`features` keys (all offline-derivable): net_margin (float|None, gross fraction), lucro_liq (float|None, R$ profit), chase_tier (str: "TOP"/"MID"/"MODEST"/"BULK"), card_num (str e.g. "199"/"TG12"/"091a"/"GG67"), set_code (str), validation_status (str: "OK"/"STALE"/other), markup_pct (float). Use ONLY the Python standard library — no third-party imports, no network, no import of the CardTrader scanner package.
+
+Hard invariants you MUST NOT relax:
+- The scanner is English + Near-Mint + ungraded only (assume the row already passed those upstream).
+- Margin is GROSS and pure (no embedded fees); below REVISAR_MIN_NET → NAO.
+- The R$50 profit floor and $10 price floor are relevance gates, not part of this contract beyond MIN_LUCRO.
+
+Known levers and a KNOWN GAP:
+- Inflated gallery subsets: production guards `TG##` (Trainer Gallery, regex `^TG\d+`, route to NAO because pokemontcg.io inflates 5–10x). The structurally identical `GG##` (Galarian Gallery) subset has the SAME inflation but is NOT guarded — those rows wrongly become COMPRA. Generalise the gallery guard to also catch `GG##` (route away from COMPRA), but do NOT hardcode specific numbers — use a regex/prefix rule, and keep it case-insensitive (`tg05`, `gg09`).
+- Alpha-suffix promo/League variant: `^\d+[a-zA-Z]+$` (e.g. `091a`) → REVISAR. Do NOT let a gallery code (`TG12`/`GG44`, which start with letters) be mistaken for a plain alpha-suffix, and do NOT let the alpha-suffix rule swallow gallery codes.
+- Tune the floors (MIN_NET_MARGIN, MIN_LUCRO, REVISAR_MIN_NET, MODEST_MIN_NET) and MARKUP_ANOMALY only at genuinely borderline cases.
+- Robust feature handling: None net_margin/lucro_liq → NAO (must not crash); strip/upper-case codes and statuses; unsupported sets → REVISAR.
+- Optimize COMPRA-class F1 WITHOUT inflating COMPRA by loosening guards (a fake margin is worse than a missed deal). Check precedence matters: variant/gallery/unsupported guards and the hard NAO outs come before the COMPRA decision.
+
+## Task Description
+{{ task_description }}
+
+## Context from Previous Experiments
+{% for node in context_nodes %}
+### {{ node.name }}
+**Motivation**: {{ node.motivation }}
+**Analysis**: {{ node.analysis }}
+{% if node.results %}**Results**: {{ node.results }}{% endif %}
+{% if node.code %}
+**Code**:
+```python
+{{ node.code }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Related Knowledge
+{% for item in cognition_items %}
+- {{ item.content }}
+{% endfor %}
+
+## Response Format
+
+Respond using XML tags. DO NOT use ```python or ``` code blocks - put code directly in XML tags:
+<name>approach_name</name>
+<motivation>why this approach</motivation>
+<code>complete Python code here</code>

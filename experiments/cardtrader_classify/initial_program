@@ -1,0 +1,100 @@
+"""Baseline CardTrader deal-decision classifier (COMPRA / REVISAR / NAO).
+
+Faithful, self-contained port of the production rules in
+`card-trader-scanner/cardtrader_postprocess.py::classify_decision` — the TG##
+Trainer-Gallery guard (`^TG\\d+`), the alpha-suffix promo/League-variant guard
+(`^\\d+[a-zA-Z]+$`), the unsupported-set guard, the markup-anomaly guard, the
+STALE/BULK/low-margin NAO outs, and the gross-margin + R$50 lucro floors for
+COMPRA. No import of the scanner package, no network — pure stdlib so the
+evaluator runs offline and deterministically.
+
+Contract (do NOT change): expose `classify_decision(features: dict) -> str`
+returning one of {"COMPRA", "REVISAR", "NAO"}, plus the module-level tunable
+constants MIN_NET_MARGIN, MIN_LUCRO, REVISAR_MIN_NET, MODEST_MIN_NET and
+MARKUP_ANOMALY.
+
+A false **COMPRA** on an inflated/variant row hands the operator a FAKE margin —
+CardTrader's historical false-positive rate without per-blueprint validation was
+~76%, so precision on the COMPRA class is the costly axis. Margin is GROSS (no
+embedded fees); the R$50 lucro floor and $10 price floor are relevance gates.
+"""
+import re
+
+# ── Tunable constants (the evolvable levers) ─────────────────────────────────
+MIN_NET_MARGIN = 0.25     # net margin (fraction) required for COMPRA
+MIN_LUCRO = 50.0          # min R$ profit for COMPRA (relevance floor)
+REVISAR_MIN_NET = 0.20    # below this → NAO; [REVISAR_MIN_NET, MIN_NET_MARGIN) → REVISAR
+MODEST_MIN_NET = 0.30     # MODEST chase needs at least this net to be worth REVISAR
+MARKUP_ANOMALY = 0.45     # seller markup above this is anomalous → REVISAR
+
+# Trainer Gallery subset: pokemontcg.io inflates these 5–10x → fake margin.
+# (Production only guards TG##; the structurally identical Galarian Gallery
+#  subset GG## is NOT guarded here — that is the known gap.)
+TRAINER_GALLERY_RE = re.compile(r'^TG\d+', re.IGNORECASE)
+# Alpha suffix after the number (e.g. 153a, 022a) = probable promo/League variant
+# blind to pokemontcg.io → forced manual review.
+ALPHA_SUFFIX_RE = re.compile(r'^\d+[a-zA-Z]+$')
+
+# Sets with poor/divergent pokemontcg.io coverage → forced manual review.
+UNSUPPORTED_SETS = {"cel", "pgo", "mcd", "fut"}
+
+
+def _norm(s):
+    return (str(s) if s is not None else "").strip()
+
+
+def classify_decision(features: dict) -> str:
+    """Classify a CardTrader→TCG row into COMPRA / REVISAR / NAO.
+
+    features keys (all offline-derivable):
+      net_margin: float | None   # gross net margin fraction (e.g. 0.35)
+      lucro_liq: float | None    # R$ profit per unit
+      chase_tier: str            # "TOP" | "MID" | "MODEST" | "BULK"
+      card_num: str              # collector number ("199", "TG12", "091a", "GG67")
+      set_code: str              # CardTrader set code
+      validation_status: str     # "OK" | "STALE" | other (markup/absent)
+      markup_pct: float          # seller markup fraction (e.g. 0.06, 0.50)
+    """
+    net = features.get("net_margin")
+    lucro = features.get("lucro_liq")
+    chase = _norm(features.get("chase_tier")).upper()
+    card_num = _norm(features.get("card_num"))
+    set_code = _norm(features.get("set_code")).lower()
+    val = _norm(features.get("validation_status")).upper()
+    markup = features.get("markup_pct")
+
+    # ── Forced manual review (false-positive guards), evaluated first ─────────
+    # Alpha-suffix promo/League variant (but TG## has its own NAO route below).
+    if ALPHA_SUFFIX_RE.match(card_num) and not TRAINER_GALLERY_RE.match(card_num):
+        return "REVISAR"
+    # Unsupported set coverage.
+    if set_code in UNSUPPORTED_SETS:
+        return "REVISAR"
+
+    # ── Hard NAO outs ────────────────────────────────────────────────────────
+    if net is None or lucro is None:
+        return "NAO"
+    # TG## Trainer Gallery: inflated reference → not a real deal.
+    if TRAINER_GALLERY_RE.match(card_num):
+        return "NAO"
+    if val == "STALE":
+        return "NAO"
+    if chase == "BULK":
+        return "NAO"
+    if net < REVISAR_MIN_NET:
+        return "NAO"
+
+    # ── Gray zone → REVISAR ──────────────────────────────────────────────────
+    if net < MIN_NET_MARGIN:                      # 0.20–0.25 borderline
+        return "REVISAR"
+    if lucro < MIN_LUCRO:                          # margin ok but profit under floor
+        return "REVISAR"
+    if chase == "MODEST":
+        return "REVISAR" if net >= MODEST_MIN_NET else "NAO"
+    if markup is not None and markup > MARKUP_ANOMALY:
+        return "REVISAR"
+    if val and val != "OK":                       # validation present but not clean
+        return "REVISAR"
+
+    # ── Survives every guard → a genuine COMPRA ──────────────────────────────
+    return "COMPRA"

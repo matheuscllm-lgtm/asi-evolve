@@ -19,6 +19,24 @@ preservando precisão. 4 scanners passados pelo método com objetivo correto:
 **Conclusão:** os 4 ótimos precision-safe estão shipados/confirmados. Próximos ganhos exigiriam
 NOVAS superfícies de função ou mais dado real (retorno decrescente). Loop encerrado sem ganho novo.
 
+### ▶️ PRÓXIMO PASSO escolhido pelo operador: CardTrader — enriquecer com dado real
+O eval do `cardtrader_classify` está SATURADO (GG## shipado → score **1.0, precisão 1.0**), então
+forward-run não tem headroom. As 5 classes de FP do eval (TG##/GG##/alpha-suffix/sets sem
+cobertura/markup) já estão todas tratadas. Pra achar ganho novo, **enriquecer com dado real +
+descobrir classes de FP NOVAS** (mesmo caminho do MYP):
+1. `~/card-trader-scanner/outputs/*.xlsx` (weekly/vintage) → extrair linhas reais + features do
+   `classify_decision` (net_margin, lucro_liq, chase_tier, card_number, set_code, validation_status,
+   markup) + Decisão COMPRA/REVISAR/NAO.
+2. **Operador rotula** quais COMPRA são FP e de que CLASSE NOVA (reverse-holo mismatch, vintage
+   inflado LC/BA-20, low-confidence holo "Variante Baixa Confiança"…).
+3. `experiments/cardtrader_classify/real_cases.json` (gitignored). LOADER já pronto em
+   `myp_match/evaluator.py::_load_real_cases` — **replicar** no cardtrader_classify (CASES =
+   sintético + real).
+4. `python main.py --experiment cardtrader_classify --steps 25 --sample-n 3 --eval-script
+   "C:/Users/mathe/asi-evolve/experiments/cardtrader_classify/eval.sh"`.
+5. Portar SÓ precision-safe (precisão ≥ piso 0.57) ao `cardtrader_postprocess.py::classify_decision`
+   com pytest verde (94) + draft PR. §0: nunca push main, não recomendar compra.
+
 ---
 
 ## 🟢 ATUALIZAÇÃO 2026-06-19 (overnight autônoma) — CardTrader portado, MYP no-port

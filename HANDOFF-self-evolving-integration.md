@@ -1,5 +1,24 @@
 # HANDOFF — Integração do ASI-Evolve nos scanners + padronização de entrega (modelo MYP)
 
+## 🟢 ATUALIZAÇÃO 2026-06-19 (overnight autônoma) — CardTrader portado, MYP no-port
+
+- **CardTrader (NOVO):** experimento `experiments/cardtrader_classify` (evolui
+  `classify_decision` COMPRA/REVISAR/NAO; COMPRA-F1, precision-first). Gap real:
+  produção guardava só Trainer Gallery `TG##`, não o irmão **Galarian Gallery `GG##`**
+  (mesma inflação pokemontcg.io). Baseline COMPRA-F1 **0,7273** → evolução generalizou
+  `^(?:TG|GG)\d+` no step 1 → **1,0** (regex, sem hardcode). **IDEIA portada** →
+  **draft PR `card-trader-scanner#25`** (`feat/galarian-gallery-fp-guard`, 94 testes verdes).
+  Mudança CONSERVADORA (guard ADITIVO: GG→NAO/manual como TG, nunca auto-compra). Caveat no PR:
+  inflação GG inferida por identidade estrutural, operador valida no merge.
+- **MYP (re-run):** `myp_match` 25 steps fresh → **EMPACOU no baseline 0,875, NO-PORT**
+  (confirma sessão anterior). 2 FN = promos non-Comum mal-flagados supranumerário. Candidato
+  offline "gate supranumerário por rarity==Comum" recupera 1 FN → **0,9412, precisão 1,0** — mas
+  ESTREITA um guard de precisão (em dado real um supranumerário FP non-Comum vazaria); eval é
+  sintético. **Não portado** — validar contra dado MYP real antes (próxima sessão).
+- **Lição:** guard ADITIVO (GG) porta limpo; guard RESTRITIVO em eval sintético (MYP) não.
+
+---
+
 ## 🟢 ESTADO ATUAL — LEIA PRIMEIRO (fim de sessão 2026-06-18)
 
 A integração está **rodando de verdade** e a primeira leva de trabalho foi

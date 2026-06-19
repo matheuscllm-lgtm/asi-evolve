@@ -218,8 +218,24 @@ def evaluate(path):
     recall = tp / (tp + fn) if (tp + fn) else 0.0
     f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
     accuracy = (tp + tn) / len(CASES)
+    # Precision-weighted objective (2026-06-19): a false match = wrong card = fake
+    # deal, so the matcher is precision-first. eval_score = F0.5 (precision 2x) AND a
+    # hard floor at the baseline precision: a candidate that regresses precision below
+    # baseline scores 0. This rewards the #25-style win (recover recall WITHOUT
+    # dropping precision) and forbids "match more by accepting wrong cards".
+    # Floor at 0.90, just below the SHIPPED #25 matcher's precision (0.9167): #25
+    # traded a hair of precision (0.9231->0.9167) for a big recall gain (0.48->0.88)
+    # and the operator accepted it, so the floor must not reject it; it still blocks
+    # any real precision collapse (<0.90 = >10% wrong-card matches).
+    PRECISION_FLOOR = 0.90
+    _b2 = 0.25               # beta**2 for F0.5
+    fbeta = ((1 + _b2) * precision * recall / (_b2 * precision + recall)) if (_b2 * precision + recall) else 0.0
+    score = fbeta if precision >= PRECISION_FLOOR else 0.0
     return {
-        "eval_score": round(f1, 4),
+        "eval_score": round(score, 4),
+        "f1": round(f1, 4),
+        "fbeta05": round(fbeta, 4),
+        "precision_floor": PRECISION_FLOOR,
         "precision": round(precision, 4),
         "recall": round(recall, 4),
         "accuracy": round(accuracy, 4),

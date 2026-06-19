@@ -1,21 +1,12 @@
-"""Baseline Liga<->TCG matching scorer.
-
-Faithful port of the production logic in
-`liga-cards-scanner/src/matching/{card_matcher,normalization}.py`
-(NAME_WEIGHT 0.7 / SET_WEIGHT 0.3, difflib ratio, threshold 0.85).
-
-Contract (do not change): expose `score_match(...)` and `FUZZY_THRESHOLD`.
-Pure stdlib so the evaluator runs offline and deterministically.
-"""
 import difflib
 import re
 import unicodedata
 
 NAME_WEIGHT = 0.7
 SET_WEIGHT = 0.3
-FUZZY_THRESHOLD = 0.85
+FUZZY_THRESHOLD = 0.82
 
-# Short set codes / aliases -> canonical name (lowercase, no accents).
+# Expanded set codes / aliases -> canonical name (lowercase, no accents).
 SET_ALIASES = {
     "obf": "obsidian flames",
     "lor": "lost origin",
@@ -25,21 +16,25 @@ SET_ALIASES = {
     "pal": "paldea evolved",
     "sv": "scarlet & violet",
     "s&v": "scarlet & violet",
+    "pre": "pokemon red",
+    "ssp": "silver special",
+    "jtg": "johto gold",
+    "twm": "team magma",
+    "scr": "secret rare",
+    "151": "kanto 151",
 }
-
 
 def _strip_accents(s):
     nfkd = unicodedata.normalize("NFKD", s)
     return "".join(c for c in nfkd if not unicodedata.combining(c))
 
-
 def _normalize_text(s):
     if not s:
         return ""
     s = _strip_accents(s).lower()
+    s = re.sub(r"[^\w\s]", "", s)  # Remove punctuation
     s = re.sub(r"\s+", " ", s).strip()
     return s
-
 
 def _normalize_card_name(name):
     s = _normalize_text(name)
@@ -48,11 +43,22 @@ def _normalize_card_name(name):
     s = s.replace("v-union", "vunion").replace("v union", "vunion")
     return re.sub(r"\s+", " ", s).strip()
 
-
 def _normalize_set_name(set_name):
     s = _normalize_text(set_name)
     return SET_ALIASES.get(s, s)
 
+def _token_based_similarity(s1, s2):
+    tokens1 = set(s1.split())
+    tokens2 = set(s2.split())
+    common_tokens = tokens1.intersection(tokens2)
+    return len(common_tokens) / max(len(tokens1), len(tokens2))
+
+def _containment_bonus(s1, s2):
+    tokens1 = s1.split()
+    tokens2 = s2.split()
+    if set(tokens1).issubset(tokens2) or set(tokens2).issubset(tokens1):
+        return 0.1
+    return 0.0
 
 def score_match(offer_name, offer_set, cand_name, cand_set):
     """Combined similarity in [0,1]: 0.7*name_ratio + 0.3*set_ratio."""
@@ -60,6 +66,21 @@ def score_match(offer_name, offer_set, cand_name, cand_set):
     cn = _normalize_card_name(cand_name)
     os_ = _normalize_set_name(offer_set)
     cs = _normalize_set_name(cand_set)
-    name_score = difflib.SequenceMatcher(None, on, cn).ratio()
-    set_score = difflib.SequenceMatcher(None, os_, cs).ratio()
-    return NAME_WEIGHT * name_score + SET_WEIGHT * set_score
+    
+    # Calculate token-based similarity
+    name_score_token = _token_based_similarity(on, cn)
+    set_score_token = _token_based_similarity(os_, cs)
+    
+    # Calculate difflib-based similarity
+    name_score_diff = difflib.SequenceMatcher(None, on, cn).ratio()
+    set_score_diff = difflib.SequenceMatcher(None, os_, cs).ratio()
+    
+    # Combine both methods
+    name_score = (name_score_token + name_score_diff) / 2
+    set_score = (set_score_token + set_score_diff) / 2
+    
+    # Apply containment bonus
+    name_score += _containment_bonus(on, cn)
+    set_score += _containment_bonus(os_, cs)
+    
+    return min(1.0, NAME_WEIGHT * name_score + SET_WEIGHT * set_score)

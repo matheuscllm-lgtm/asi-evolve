@@ -15,7 +15,15 @@
   offline "gate supranumerário por rarity==Comum" recupera 1 FN → **0,9412, precisão 1,0** — mas
   ESTREITA um guard de precisão (em dado real um supranumerário FP non-Comum vazaria); eval é
   sintético. **Não portado** — validar contra dado MYP real antes (próxima sessão).
-- **Lição:** guard ADITIVO (GG) porta limpo; guard RESTRITIVO em eval sintético (MYP) não.
+- **COMC (re-run):** `comc_tiers` → evolução "ganhou" 0,78→0,90 F1 mas **OVERFIT** (baixou cutoffs
+  NAME_STRONG 90→88 etc. → precisão 0,90→0,81, +2 FP). REJEITEI o candidato F1-max. O lever
+  PRECISION-SAFE no MESMO eval = **gap-gate no Tier 2** (exigir best−runner≥gap, como o Tier 3 já
+  faz): precisão **0,90→1,0**, recall igual (FP 1→0). Validado externamente (matcher.py: Tiers
+  0,90/0,85 não tinham o gap que o Tier 3 tem). **PORTADO** → draft PR `scanner-comc#5`
+  (gap-gate Tier 2 + 2 testes; 52 verdes). Tier 1' não gated (same-name finish dropparia recall).
+- **Lição:** guard ADITIVO (GG) ou gap-gate de PRECISÃO (COMC Tier 2) portam limpo; guard
+  RESTRITIVO de recall em eval sintético (MYP) não. **F1 é objetivo errado p/ scanner precision-first
+  — escolher o candidato precision-safe, não o F1-max.**
 
 ---
 

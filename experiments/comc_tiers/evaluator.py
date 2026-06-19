@@ -251,6 +251,16 @@ def evaluate(path):
     recall = tp / (tp + fn) if (tp + fn) else 0.0
     f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
     accuracy = (tp + tn) / len(CASES)
+    # Precision-weighted objective (2026-06-19): plain F1 rewards recall, which let
+    # the evolution "win" by lowering cutoffs (precision 0.90 -> 0.81) — wrong for a
+    # precision-first scanner. eval_score = F0.5 (precision weighted 2x) AND a hard
+    # floor at the baseline precision: any candidate that regresses precision below
+    # baseline scores 0, so a precision-losing recall boost can never win. Under
+    # this, the Tier-2 gap-gate (P 0.90->1.0) beats the cutoff-lowering overfit.
+    PRECISION_FLOOR = 0.90   # accept-class precision of the baseline matcher
+    _b2 = 0.25               # beta**2 for F0.5
+    fbeta = ((1 + _b2) * precision * recall / (_b2 * precision + recall)) if (_b2 * precision + recall) else 0.0
+    score = fbeta if precision >= PRECISION_FLOOR else 0.0
 
     # Per-tier calibration: fraction of cases assigned to each tier whose gold was
     # a real match (1.0 = perfectly calibrated; lower = that tier leaked rejects).
@@ -264,7 +274,10 @@ def evaluate(path):
         }
 
     return {
-        "eval_score": round(f1, 4),
+        "eval_score": round(score, 4),
+        "f1": round(f1, 4),
+        "fbeta05": round(fbeta, 4),
+        "precision_floor": PRECISION_FLOOR,
         "precision": round(precision, 4),
         "recall": round(recall, 4),
         "accuracy": round(accuracy, 4),

@@ -232,6 +232,15 @@ def evaluate(path):
     precision = tp / (tp + fp) if (tp + fp) else 0.0
     recall = tp / (tp + fn) if (tp + fn) else 0.0
     f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
+    # Precision-weighted objective (2026-06-19): plain F1 rewards recall, which let
+    # the evolution "win" by lowering cutoffs (precision loss) — wrong for a
+    # precision-first scanner. eval_score = F0.5 (precision weighted 2x) AND a hard
+    # floor at the baseline precision: any candidate that regresses precision below
+    # baseline scores 0, so a precision-losing recall boost can never win.
+    PRECISION_FLOOR = 1.0    # CLEAN-class precision of the baseline classifier
+    _b2 = 0.25               # beta**2 for F0.5
+    fbeta = ((1 + _b2) * precision * recall / (_b2 * precision + recall)) if (_b2 * precision + recall) else 0.0
+    score = fbeta if precision >= PRECISION_FLOOR else 0.0
 
     # Macro-F1 across all 4 labels (per-label one-vs-rest).
     per_label = {}
@@ -251,7 +260,10 @@ def evaluate(path):
     overall_acc = sum(confusion[l][l] for l in LABELS) / len(CASES)
 
     return {
-        "eval_score": round(f1, 4),
+        "eval_score": round(score, 4),
+        "f1": round(f1, 4),
+        "fbeta05": round(fbeta, 4),
+        "precision_floor": PRECISION_FLOOR,
         "clean_precision": round(precision, 4),
         "clean_recall": round(recall, 4),
         "clean_counts": {"tp": tp, "fp": fp, "fn": fn, "tn": tn},

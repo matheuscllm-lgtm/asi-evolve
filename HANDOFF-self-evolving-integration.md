@@ -1,5 +1,51 @@
 # HANDOFF — Integração do ASI-Evolve nos scanners + padronização de entrega (modelo MYP)
 
+## 🟢 ESTADO ATUAL — LEIA PRIMEIRO (fim de sessão 2026-06-18)
+
+A integração está **rodando de verdade** e a primeira leva de trabalho foi
+**mergeada no `main`**. Resumo pra retomar sem reler tudo:
+
+**Feito e mergeado (3 PRs):**
+- `liga-cards-scanner#25` ✅ **merged** — matching token-aware + containment + aliases
+  reais + threshold 0,82 (descoberto pelo ASI-Evolve, **portado à mão** — o código
+  do LLM tinha aliases alucinados). F1 (33 casos) 0,63→0,90, **precisão mantida**, 158 testes verdes.
+- `scanner-comc#3` ✅ **merged** — entrega COMC na coluna única `Links` (padrão MYP/Liga), 50 testes.
+- `asi-evolve#1` ✅ **merged** — este handoff + 3 experimentos + 4 fixes de Windows + runbook §9.
+
+**Resultado dos 3 runs ao vivo (gpt-4o, ~US$6 na sessão):** só **liga** rendeu port limpo.
+**myp_match** empacou no baseline (sem ganho). **comc_tiers** bateu 1,0 mas era overfit de
+fronteira — eval enriquecido revelou troca precisão↔recall (0,90→0,81) → **não portado** (COMC
+é precision-first). Ver §6 (fim) pros detalhes.
+
+**Ambiente (tudo persistido como User env var no Windows — toda sessão herda):**
+`OPENAI_API_KEY`, `ASI_EVOLVE_BASH=C:\Program Files\Git\bin\bash.exe`,
+`HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`. `.venv` montado em `~/asi-evolve`.
+Modelo de embedding já no cache do HF. **Como rodar = §9** (runbook Windows, comando exato;
+`--eval-script` ABSOLUTO é obrigatório, senão tudo pontua 0,0).
+
+**Gotchas que custaram caro (não re-descobrir):**
+- CI dos repos fica **VERMELHA por billing do GitHub Actions** (operador não custeia; jobs
+  falham em 3-4s sem rodar step). **Validar SEMPRE com `pytest` LOCAL.** Merge normal passa
+  (check não-obrigatório, estado `UNSTABLE`); **não** usar `gh pr merge --admin` (guard-rail bloqueia, e com razão).
+- O downloader do HuggingFace **trava em 0 B** nesta máquina → modo offline + cache via `curl`.
+- `bash` nu no Windows = WSL (falha HCS) → por isso `ASI_EVOLVE_BASH`.
+
+**Próximos passos (quando quiser continuar):**
+1. **Extrair mais ganho:** reseedar a evolução a partir do **melhor candidato** (não do baseline
+   fraco — ele empaca/overfita). Ex.: trocar `experiments/<exp>/initial_program` pelo melhor `code`
+   e rodar `--steps 30`.
+2. **myp_match / comc_tiers:** só rendem se os evals forem **enriquecidos com dado real** (os
+   atuais são sintéticos; o comc tentou trapacear baixando cortes). Sem isso, não portar.
+3. Branches `claude/self-evolving-agent-integration-budf77` seguem nos 3 repos (não deletadas;
+   o operador roda `git push origin --delete <branch>` se quiser limpar — harness/remote dá 403).
+4. **Regras invioláveis seguem (§0):** PR draft + testes verdes; entrega = tabela no chat; margem
+   bruta; não recomendar compra.
+
+> Memória local equivalente: `~/.claude/.../memory/asi_evolve_integration.md` (auto-carregada
+> em sessão local). O resto deste documento (§1–§9) é o detalhe técnico/histórico.
+
+---
+
 > **Para quem é isto:** uma sessão do Claude Code **rodando no terminal local do
 > Matheus** (com shell completo, venvs e — se configurado — uma chave de LLM).
 > Este documento foi gerado numa sessão de **nuvem** que **não pôde executar** o

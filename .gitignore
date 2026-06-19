@@ -20,3 +20,6 @@ experiments/*/wandb/
 /results.json
 
 experiments/*/candidate_*.py
+
+# real scan-derived eval cases (deal data — local only)
+experiments/*/real_cases.json

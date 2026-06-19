@@ -35,7 +35,7 @@ LABELS = ("clean", "supranumerary", "tcg_suspect", "reject")
 # Each case: a feature dict (offline-derivable) + the gold label.
 # Keys: margin, condition, language, card_num, set_total, declared_tcg,
 #       last_sale, rarity.
-CASES = [
+_SYNTHETIC_CASES = [
     # 0) Jirachi PR-SM SM161 — TCG declared R$1499 vs last sale R$19.99 = 75x.
     #    EN-NM, in-range collector#, high margin, but the declared price is a
     #    .estat-tcg mis-map -> tcg_suspect (NOT a clean deal).
@@ -172,6 +172,34 @@ CASES = [
                   "last_sale": 80.00, "rarity": "Alt Art Secret"},
      "gold": "clean"},
 ]
+
+
+def _load_real_cases():
+    """Enrich the eval with REAL labeled rows from recent scans (2026-06-19).
+
+    `real_cases.json` (next to this evaluator) is generated from real MYP scan
+    outputs and labeled per the operator-confirmed rule (supranumerary + Comum =
+    rarity mislabel -> "supranumerary"/review; non-Comum supranumerary = real ->
+    "clean"; declared/last_sale >= 10 -> "tcg_suspect"; margin < floor -> "reject").
+    The file is git-ignored (deal data stays local). Absent -> synthetic only.
+    """
+    import json as _json
+    import os as _os
+    p = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "real_cases.json")
+    if not _os.path.exists(p):
+        return []
+    try:
+        with open(p, encoding="utf-8") as fh:
+            data = _json.load(fh)
+        return [c for c in data if c.get("gold") in LABELS and isinstance(c.get("features"), dict)]
+    except Exception:
+        return []
+
+
+# Synthetic cases keep the hard invariants (SP/PT reject, condition exact-match)
+# and boundary headroom; the real cases ground the supranumerary/rarity question
+# in actual scan rows. Together they form the evaluation set.
+CASES = _SYNTHETIC_CASES + _load_real_cases()
 
 
 def _load_candidate(path):

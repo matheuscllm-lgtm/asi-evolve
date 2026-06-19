@@ -1,5 +1,26 @@
 # HANDOFF — Integração do ASI-Evolve nos scanners + padronização de entrega (modelo MYP)
 
+## 🟢 FECHAMENTO 2026-06-19 — 4 scanners no método, 3 ports + Liga confirmado ótimo
+
+**Parte A (precision-weighted objective F0.5 + piso) aplicada nos 4 evals.** Provado que o
+piso ZERA candidatos que trocam precisão por recall (overfit) → a evolução só "ganha"
+preservando precisão. 4 scanners passados pelo método com objetivo correto:
+
+- **CardTrader** GG## guard → PR #25 MERGEADO.
+- **COMC** gap-gate Tier 2 → PR #5 MERGEADO.
+- **MYP** rarity-confidence (supranumerário "Comum" = raridade mal-rotulada, flag/review não
+  bloqueio; validado em dado real, flag precisão 0,28→1,0) → PR #49 MERGEADO. Eval enriquecido
+  com 33 casos reais. Re-run plateauou no baseline (rarity-gate não re-descoberto pela LLM, mas
+  já shipado).
+- **Liga** (era o mais defasado): liga_match Part A (piso 0,90) + reseed do initial_program pro
+  estado #25 (F0.5 0,9091). Evolução FORWARD plateauou — nenhum candidato superou #25 (os que
+  tentaram zeraram pelo piso ou perderam recall). **#25 é o ótimo precision-safe → sem port novo.**
+
+**Conclusão:** os 4 ótimos precision-safe estão shipados/confirmados. Próximos ganhos exigiriam
+NOVAS superfícies de função ou mais dado real (retorno decrescente). Loop encerrado sem ganho novo.
+
+---
+
 ## 🟢 ATUALIZAÇÃO 2026-06-19 (overnight autônoma) — CardTrader portado, MYP no-port
 
 - **CardTrader (NOVO):** experimento `experiments/cardtrader_classify` (evolui

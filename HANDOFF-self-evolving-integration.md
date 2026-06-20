@@ -19,23 +19,31 @@ preservando precisão. 4 scanners passados pelo método com objetivo correto:
 **Conclusão:** os 4 ótimos precision-safe estão shipados/confirmados. Próximos ganhos exigiriam
 NOVAS superfícies de função ou mais dado real (retorno decrescente). Loop encerrado sem ganho novo.
 
-### ▶️ PRÓXIMO PASSO escolhido pelo operador: CardTrader — enriquecer com dado real
-O eval do `cardtrader_classify` está SATURADO (GG## shipado → score **1.0, precisão 1.0**), então
-forward-run não tem headroom. As 5 classes de FP do eval (TG##/GG##/alpha-suffix/sets sem
-cobertura/markup) já estão todas tratadas. Pra achar ganho novo, **enriquecer com dado real +
-descobrir classes de FP NOVAS** (mesmo caminho do MYP):
-1. `~/card-trader-scanner/outputs/*.xlsx` (weekly/vintage) → extrair linhas reais + features do
-   `classify_decision` (net_margin, lucro_liq, chase_tier, card_number, set_code, validation_status,
-   markup) + Decisão COMPRA/REVISAR/NAO.
-2. **Operador rotula** quais COMPRA são FP e de que CLASSE NOVA (reverse-holo mismatch, vintage
-   inflado LC/BA-20, low-confidence holo "Variante Baixa Confiança"…).
-3. `experiments/cardtrader_classify/real_cases.json` (gitignored). LOADER já pronto em
-   `myp_match/evaluator.py::_load_real_cases` — **replicar** no cardtrader_classify (CASES =
-   sintético + real).
-4. `python main.py --experiment cardtrader_classify --steps 25 --sample-n 3 --eval-script
-   "C:/Users/mathe/asi-evolve/experiments/cardtrader_classify/eval.sh"`.
-5. Portar SÓ precision-safe (precisão ≥ piso 0.57) ao `cardtrader_postprocess.py::classify_decision`
-   com pytest verde (94) + draft PR. §0: nunca push main, não recomendar compra.
+### ✅ FECHADO 2026-06-19 — CardTrader enriquecido com dado real: VALIDADO, SEM PORT
+Decisão do operador após inspeção dos dados reais: **fechar como validado, sem novo port.**
+
+**O que foi feito:**
+1. **Loader `_load_real_cases()` adicionado** ao `cardtrader_classify/evaluator.py` (espelha
+   `myp_match`; `CASES = _SYNTHETIC_CASES + _load_real_cases()`; `real_cases.json` gitignored;
+   ausência → só sintéticos, não quebra checkout limpo).
+2. **Dado real extraído de 2 scans frescos** (06-13 weekly + scan novo 06-19 dos sets de lançamento
+   `par/scr/sfa/tef/twm/ssp/dri/blk/jtg`, threshold 0.20, validate-top 50). `real_cases.json` montado
+   com **7 linhas reais** rotuladas (1 COMPRA Dachsbun SIR + 6 REVISAR borderline).
+3. **Conclusão (honesta):** o fluxo real de deals do CardTrader é **limpo** — todas as linhas são
+   supranumerárias alt-art holofoil **legítimas** (Illustration Rare/SIR/Secret Rare), markup normal
+   (+13-14%) ou 0,0 "Real" (V_REAL). **Nenhum markup negativo / variante trocada se reproduziu** nos
+   2 scans. A anomalia do Joltik −34,9% (scan 06-12) foi **esporádica, não recorrente**.
+4. **Eval validado:** os 7 reais classificam 100% certo (gold==pred), **zero FP em dado real**. Não há
+   classe de FP NOVA reproduzível → forçar uma seria o overfit que a lição-mãe proíbe.
+
+**Resultado:** o eval satura em 1.0 (no código shipado, com GG guard) porque a **realidade é limpa** —
+os guards TG/GG/alpha/markup já cobrem a inflação conhecida, e o que sobra são deals reais. Mesmo
+desfecho do Liga (platô no ótimo) e do MYP pré-correção de semântica. **Nenhum PR aberto.** Os 7
+positivos reais ficam no `real_cases.json` (local) aterrando o eval em dado real.
+
+**Se reabrir:** caçar a anomalia de markup-negativo/variante com mais volume (incluir `paf` via
+`--ignore-skip-list`); só vale port se ela reaparecer de forma recorrente e o operador confirmar que
+é FP (não deal barato legítimo). Ver [[cardtrader_asi_evolve_pending]] (agora fechada).
 
 ---
 

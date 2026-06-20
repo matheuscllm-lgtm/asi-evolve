@@ -37,7 +37,7 @@ LABELS = ("COMPRA", "REVISAR", "NAO")
 # Each case: a feature dict (offline-derivable) + the gold label.
 # Keys: net_margin, lucro_liq, chase_tier, card_num, set_code,
 #       validation_status, markup_pct.
-CASES = [
+_SYNTHETIC_CASES = [
     # ── Genuine COMPRA (clean strong deals) ──────────────────────────────────
     {"name": "Charizard ex 199/165 clean",
      "features": {"net_margin": 0.35, "lucro_liq": 140.0, "chase_tier": "TOP",
@@ -137,6 +137,39 @@ CASES = [
                   "card_num": "063", "set_code": "mew", "validation_status": "MARKUP",
                   "markup_pct": 0.06}, "gold": "REVISAR"},
 ]
+
+
+def _load_real_cases():
+    """Enrich the eval with REAL labeled rows from recent CardTrader scans.
+
+    `real_cases.json` (next to this evaluator) is generated from real
+    card-trader-scanner outputs and labeled by the operator. It grounds the
+    synthetic FP classes (TG/GG/alpha-suffix/unsupported-set/markup) in actual
+    scan rows and surfaces NEW classes the synthetic set misses (e.g.
+    supranumerary collector#, low-confidence holo variant, vintage LC/BA-20
+    inflation). The file is git-ignored (deal data stays local). Absent ->
+    synthetic only, so the eval still runs on a clean checkout.
+
+    Each entry mirrors a synthetic case: {"name", "features": {...}, "gold"}.
+    Only entries with a valid gold label and a dict of features are kept.
+    """
+    import json as _json
+    import os as _os
+    p = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "real_cases.json")
+    if not _os.path.exists(p):
+        return []
+    try:
+        with open(p, encoding="utf-8") as fh:
+            data = _json.load(fh)
+        return [c for c in data if c.get("gold") in LABELS and isinstance(c.get("features"), dict)]
+    except Exception:
+        return []
+
+
+# Synthetic cases keep the hard FP-class invariants (TG/GG route to NAO, alpha
+# suffix to REVISAR) and boundary headroom; the real cases ground the COMPRA /
+# false-positive question in actual scan rows. Together they form the eval set.
+CASES = _SYNTHETIC_CASES + _load_real_cases()
 
 
 def _load_candidate(path):

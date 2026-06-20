@@ -1,0 +1,124 @@
+"""Baseline CardTrader vintage false-positive guard.
+
+Faithful, pure-stdlib port of the production decision logic in
+`card-trader-scanner/cardtrader_postprocess.py::classify_decision` (+ the module
+constants TRAINER_GALLERY_RE, ALPHA_SUFFIX_RE, UNSUPPORTED_SETS). Given a single
+listing's features, it routes the listing to one of:
+
+    "COMPRA"  — clean auto-buy candidate
+    "REVISAR" — needs manual validation (gray zone / promo / unsupported set)
+    "NAO"     — reject (TG/GG gallery, stale, bulk, below-floor margin)
+
+Contract (do NOT change): expose `classify_listing(row) -> (decision, reason)`.
+`row` is a plain dict (keys below). Pure stdlib so the evaluator runs offline and
+deterministically — no pandas, no network.
+
+`row` keys the guard may read:
+    card_number          str   collector number, e.g. "153a", "TG12", "22"
+    set_code             str   CardTrader set code or "Name (code)" label
+    chase_tier           str   "TOP" | "MID" | "MODEST" | "BULK"
+    net_margin           float gross margin as a fraction (0.30 == 30%)
+    lucro_liq            float gross profit in BRL
+    validation_status    str   "VALIDATED_REAL" | "VALIDATED_MARKUP" |
+                               "MARKUP_TIER_ANOMALOUS" | "STALE" | "" ...
+    trainer_gallery_potential_fp  bool  derived from TG##/GG## card number
+    low_conf_variant     bool  non-holo offer matched to an expensive holo ref
+                               (reverseHolofoil inflation — Pichu/Tyranitar class)
+    set_era              str   "vintage" | "modern" (advisory; baseline ignores it)
+
+NOTE ON SCOPE (this is the headroom the evolution may explore): the production
+guard does NOT currently act on `low_conf_variant`, nor on the vintage
+"suspect set" list (Legendary Collection `lc`, Battle Academy `ba-20`/`ba-22`) —
+those only surface in separate advisory sheets/columns, never in the COMPRA/
+REVISAR decision. So a vintage variant-inflation listing (e.g. a non-foil Pichu
+priced off the holofoil reference) sails through to COMPRA today. This baseline
+reproduces that behavior faithfully.
+"""
+import re
+
+# Thresholds (production DecisionConfig defaults — gross margin, no fees).
+MIN_NET_MARGIN = 0.25                 # >= 25% net -> COMPRA territory
+MIN_LUCRO_LIQ = 50.0                  # >= R$50 profit
+REVISAR_MIN_NET = 0.20                # 20-25% -> REVISAR
+REVISAR_CHASE_MODEST_MIN_NET = 0.30   # MODEST needs >= 30% to reach REVISAR
+
+# Gallery subsets (Trainer Gallery TG## + Galarian Gallery GG##): pokemontcg.io
+# matches a same-name secret/alt-art (5-10x price) -> fake margin.
+TRAINER_GALLERY_RE = re.compile(r"^(?:TG|GG)\d+", re.IGNORECASE)
+
+# Alpha-suffix collector numbers (153a, 022a, 156b): promo/League variants
+# (1st/2nd/3rd/4th Place, Prerelease) blind to pokemontcg.io.
+ALPHA_SUFFIX_RE = re.compile(r"^\d+[a-zA-Z]+", re.IGNORECASE)
+
+# Sets with poor / diverging pokemontcg.io coverage -> forced manual review.
+UNSUPPORTED_SETS = {
+    "clb", "wcd2004", "wcd2006", "wcd2007", "deckexclusives",
+    "xytkn", "m24", "phs", "pplf", "xybsp",
+}
+
+
+def _extract_set_code(set_label):
+    """'Jungle (ju)' -> 'ju'; bare 'lc' -> 'lc'."""
+    if not set_label:
+        return ""
+    s = str(set_label).strip()
+    m = re.search(r"\(([^)]+)\)\s*$", s)
+    if m:
+        return m.group(1).strip().lower()
+    return s.lower()
+
+
+def _is_nan(x):
+    return x is None or (isinstance(x, float) and x != x)
+
+
+def classify_listing(row):
+    """Mechanical rule. Returns (decision, reason)."""
+    chase = row.get("chase_tier", "MODEST")
+    nm = row.get("net_margin", 0)
+    profit = row.get("lucro_liq", 0)
+    val = str(row.get("validation_status", "")).upper()
+    is_tg = bool(row.get("trainer_gallery_potential_fp", False))
+
+    # Alpha-suffix -> promo/League variant -> forced REVISAR.
+    card_num = str(row.get("card_number") or "").strip()
+    if ALPHA_SUFFIX_RE.match(card_num) and not TRAINER_GALLERY_RE.match(card_num):
+        return ("REVISAR",
+                f"Alpha suffix '{card_num}' — provavel promo/League variant; "
+                f"valide via Link TCG")
+
+    # Unsupported set -> forced REVISAR.
+    set_code = _extract_set_code(row.get("set_code"))
+    if set_code in UNSUPPORTED_SETS:
+        return ("REVISAR",
+                f"Set {set_code} sem cobertura confiavel em pokemontcg.io")
+
+    if _is_nan(nm) or _is_nan(profit):
+        return ("NAO", "Dados insuficientes (margem/lucro ausentes)")
+
+    # NAO (definitive rejects).
+    if is_tg:
+        return ("NAO", "TG##/GG## gallery potencial FP (pokemontcg.io infla 5-10x)")
+    if val in ("STALE",):
+        return ("NAO", "Validation STALE — preco inseguro")
+    if chase == "BULK":
+        return ("NAO", f"Chase BULK + net {nm:.0%}")
+    if nm < REVISAR_MIN_NET:
+        return ("NAO", f"Net margin {nm:.0%} < {REVISAR_MIN_NET:.0%} (abaixo do piso)")
+
+    # REVISAR (gray zone).
+    if nm < MIN_NET_MARGIN:
+        return ("REVISAR", f"Net {nm:.0%} borderline ({REVISAR_MIN_NET:.0%}-{MIN_NET_MARGIN:.0%})")
+    if profit < MIN_LUCRO_LIQ:
+        return ("REVISAR", f"Net {nm:.0%} OK mas lucro R${profit:.0f} < R${MIN_LUCRO_LIQ:.0f}")
+    if chase == "MODEST":
+        if nm >= REVISAR_CHASE_MODEST_MIN_NET:
+            return ("REVISAR", f"MODEST + net alta {nm:.0%}")
+        return ("NAO", f"MODEST + net {nm:.0%} (precisa >= {REVISAR_CHASE_MODEST_MIN_NET:.0%})")
+    if val in ("MARKUP_TIER_ANOMALOUS", "ANOMALOUS_MARKUP"):
+        return ("REVISAR", f"Markup anomalo; chase {chase} + net {nm:.0%}")
+    if val not in ("VALIDATED_REAL", "VALIDATED_MARKUP"):
+        return ("REVISAR", f"Validation {val or 'ausente'}; chase {chase} + net {nm:.0%}")
+
+    # COMPRA.
+    return ("COMPRA", f"Chase {chase} + net {nm:.0%} + lucro R${profit:.0f}")

@@ -41,6 +41,15 @@ os guards TG/GG/alpha/markup já cobrem a inflação conhecida, e o que sobra s�
 desfecho do Liga (platô no ótimo) e do MYP pré-correção de semântica. **Nenhum PR aberto.** Os 7
 positivos reais ficam no `real_cases.json` (local) aterrando o eval em dado real.
 
+**▶ FORWARD-RUN EXECUTADO 2026-06-19 (autonomia total do operador) — confirma SEM PORT:** rodada a
+evolução de verdade no eval de 29 casos (DB resetado p/ fresh — os 26 nós antigos eram do eval pré-dados-reais,
+deletados c/ backup). 25 steps, gpt-4o, 26 chamadas LLM, 201k tokens (~US$1-2). **Melhor candidato = step 1,
+eval_score 1.0** (baseline 0.6757). A IDEIA: generalizou `^TG\d+` → **`^(?:TG|GG)\d+`** — **idêntica ao PR #25
+já mergeado** (`TRAINER_GALLERY_RE` em `cardtrader_postprocess.py:104` + `test_galarian_gallery_guard.py`).
+A evolução re-derivou o único headroom de precisão do eval, que **já está em produção**. **Zero ganho novo →
+nada a portar, nada a mergear.** Comando: `.venv\Scripts\python.exe -u main.py --experiment cardtrader_classify
+--steps 25 --sample-n 3 --eval-script "C:/Users/mathe/asi-evolve/experiments/cardtrader_classify/eval.sh"`.
+
 **Se reabrir:** caçar a anomalia de markup-negativo/variante com mais volume (incluir `paf` via
 `--ignore-skip-list`); só vale port se ela reaparecer de forma recorrente e o operador confirmar que
 é FP (não deal barato legítimo). Ver [[cardtrader_asi_evolve_pending]] (agora fechada).

@@ -30,7 +30,30 @@ Modelo de embedding já no cache do HF. **Como rodar = §9** (runbook Windows, c
 - O downloader do HuggingFace **trava em 0 B** nesta máquina → modo offline + cache via `curl`.
 - `bash` nu no Windows = WSL (falha HCS) → por isso `ASI_EVOLVE_BASH`.
 
+**Novo scaffold (sessão nuvem 2026-06-20) — `experiments/cardtrader_vintage/` (A4):**
+Experimento ASI-Evolve mirando o **guard de false-positive vintage do CardTrader**
+(`cardtrader_postprocess.py::classify_decision`), NÃO o slice TG/GG da regex (esse
+saturou — re-deriva o código já shipado no PR #25, zero ganho). O alvo é a **lacuna
+documentada**: `classify_decision` **não age** sobre `low_conf_variant` (inflação
+reverseHolofoil — Pichu Expedition $224,99 holo vs $50,41 reverse; Tyranitar Aquapolis)
+nem sobre `VINTAGE_SUSPECT_SETS` (lc, ba-20, ba-22) — ambos só viram coluna/sheet
+advisória, nunca a decisão COMPRA/REVISAR. Contrato: `classify_listing(row) ->
+(decision, reason)`, pure stdlib, offline. Evaluator = 20 casos reais rotulados
+(CHANGELOG 2026-05-18 + CLAUDE.md), classe positiva = "needs_guard" (não pode ser
+COMPRA). **Baseline (port fiel da produção) = F1 0,818 / precisão 1,0 / recall 0,69**
+(4 FN = exatamente LC, BA-20, Pichu, Tyranitar). Headroom genuíno e portável. Validado
+offline nesta sessão: solução **precisa** (flag low_conf_variant OU suspect-set,
+mantém vintage limpo) → **F1 1,0 / prec 1,0**; solução **preguiçosa** (flag todo
+vintage) → F1 0,929 / prec 0,87 (2 FP nos vintage limpos Charizard Base / Neo) — a
+armadilha de precisão morde, igual ao comc_tiers. **PENDENTE: rodar o loop LLM** (não
+roda na nuvem — sem endpoint OpenAI; ver §9 runbook, trocar `liga_match` por
+`cardtrader_vintage`). Se um candidato superar mantendo precisão 1,0, portar a IDEIA
+(rotear low_conf_variant + VINTAGE_SUSPECT_SETS pra REVISAR em `classify_decision`)
+com teste verde → PR draft no `card-trader-scanner`. **Não portar código LLM cru.**
+
 **Próximos passos (quando quiser continuar):**
+0. **Rodar `cardtrader_vintage` (A4) no terminal local** (§9 runbook; `--eval-script`
+   absoluto). Baseline 0,818 com headroom claro — bom alvo pra próxima run.
 1. **Extrair mais ganho:** reseedar a evolução a partir do **melhor candidato** (não do baseline
    fraco — ele empaca/overfita). Ex.: trocar `experiments/<exp>/initial_program` pelo melhor `code`
    e rodar `--steps 30`.
@@ -261,6 +284,12 @@ backlog (§6), rode os testes, e só abra/atualize PR draft se os testes passare
       ✅ scaffold offline — baseline F1 (clean-class) = 0,875 (prec 1.0, rec 0,778).
 - [x] **A3.** Construir `experiments/comc_tiers` ligado a `test_matcher.py` (§3.3).
       ✅ scaffold offline — baseline F1 (accept/reject) = 0,889 (prec 1.0, rec 0,8).
+- [x] **A4.** Construir `experiments/cardtrader_vintage` (guard de FP vintage do CT —
+      `classify_decision`, NÃO o slice TG/GG que saturou). ✅ scaffold offline — baseline
+      F1 0,818 (prec 1,0, rec 0,69; 4 FN = low_conf_variant + suspect-sets lc/ba). Gradiente
+      validado: solução precisa → 1,0; preguiçosa (flag todo vintage) → 0,929 (armadilha de
+      precisão). **PENDENTE rodar loop LLM local** (§9). Não há experimento cardtrader no
+      repo até aqui — o `cardtrader_classify` do PR #25 rodou só local, nunca commitado.
 - [x] **B2.** Confirmar CardTrader/Liga já no formato; travar com teste se faltar.
       ✅ ambos já batem **e já travados por teste** — CardTrader 27 verdes
       (`test_delivery_markdown.py`/`test_ct_myp_model.py`), Liga 10 verdes

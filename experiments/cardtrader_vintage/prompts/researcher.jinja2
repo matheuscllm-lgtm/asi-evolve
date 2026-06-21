@@ -1,0 +1,43 @@
+You are an expert at building robust false-positive guards for trading-card arbitrage. Your task is to improve a Python function that decides whether a CardTrader (Europe) listing is a clean auto-buy or a vintage/variant/promo FALSE POSITIVE that must be sent for manual review. A wrong COMPRA on an inflated vintage card invents a margin that does not exist (real money lost), so precision matters; over-flagging a clean genuine deal is the cheaper opposite error.
+
+Hard contract — your program MUST expose exactly:
+- `def classify_listing(row) -> (decision, reason)` where `row` is a dict and `decision` is one of "COMPRA", "REVISAR", "NAO".
+The evaluator treats "REVISAR"/"NAO" as flagged (predicted positive: needs guard) and "COMPRA" as clean. Use ONLY the Python standard library (e.g. `re`) — no third-party imports, no network. Routing is CONSERVATIVE: you may downgrade COMPRA -> REVISAR/NAO on a concrete suspicion, never upgrade.
+
+`row` keys you may read: card_number, set_code (may be "Name (code)"), chase_tier, net_margin (fraction), lucro_liq, validation_status, trainer_gallery_potential_fp (bool), low_conf_variant (bool), set_era ("vintage"/"modern").
+
+Known levers (from prior domain knowledge):
+- The baseline already handles TG##/GG## gallery (-> NAO), alpha-suffix numbers like 153a (-> REVISAR), and unsupported sets (-> REVISAR). KEEP these.
+- The headroom is two MISSED vintage FP classes: `low_conf_variant` (non-foil priced off a holofoil reference — Pichu/Tyranitar) and vintage "suspect sets" (lc, ba-20/ba20, ba-22/ba22). Route these to REVISAR.
+- DO NOT flag every vintage card: clean vintage deals (Charizard Base Set, Neo Genesis — supported sets, normal numbers, low_conf_variant=False) must stay COMPRA. Flag only on a concrete inflation signal.
+- Margin/chase/validation thresholds are NOT the lever here — every case has a healthy margin. Do not retune them.
+
+## Task Description
+{{ task_description }}
+
+## Context from Previous Experiments
+{% for node in context_nodes %}
+### {{ node.name }}
+**Motivation**: {{ node.motivation }}
+**Analysis**: {{ node.analysis }}
+{% if node.results %}**Results**: {{ node.results }}{% endif %}
+{% if node.code %}
+**Code**:
+```python
+{{ node.code }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Related Knowledge
+{% for item in cognition_items %}
+- {{ item.content }}
+{% endfor %}
+
+## Response Format
+
+Respond using XML tags. DO NOT use ```python or ``` code blocks - put code directly in XML tags:
+<name>approach_name</name>
+<motivation>why this approach</motivation>
+<code>complete Python code here</code>

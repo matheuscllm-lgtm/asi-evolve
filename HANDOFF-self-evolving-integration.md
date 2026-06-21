@@ -24,9 +24,11 @@ Modelo de embedding já no cache do HF. **Como rodar = §9** (runbook Windows, c
 `--eval-script` ABSOLUTO é obrigatório, senão tudo pontua 0,0).
 
 **Gotchas que custaram caro (não re-descobrir):**
-- CI dos repos fica **VERMELHA por billing do GitHub Actions** (operador não custeia; jobs
-  falham em 3-4s sem rodar step). **Validar SEMPRE com `pytest` LOCAL.** Merge normal passa
-  (check não-obrigatório, estado `UNSTABLE`); **não** usar `gh pr merge --admin` (guard-rail bloqueia, e com razão).
+- CI dos repos: **antes** ficava VERMELHA por billing do GitHub Actions (jobs falhavam em
+  3-4s sem rodar o step). **Atualização 2026-06-20:** os repos foram tornados **públicos** →
+  Actions é gratuito e o CI **voltou a rodar de verdade**; a nota de "billing" não vale mais.
+  Ainda assim, **validar com `pytest` LOCAL** segue sendo o caminho mais rápido. Merge normal
+  passa (check não-obrigatório); **não** usar `gh pr merge --admin` (guard-rail bloqueia, e com razão).
 - O downloader do HuggingFace **trava em 0 B** nesta máquina → modo offline + cache via `curl`.
 - `bash` nu no Windows = WSL (falha HCS) → por isso `ASI_EVOLVE_BASH`.
 

@@ -1,0 +1,89 @@
+# sealed_match — matcher de PRODUTO SELADO Pokémon (título BR -> SKU canônico).
+#
+# Alvo de evolução: a LÓGICA de casar um título de anúncio brasileiro (Liga/OLX/
+# MercadoLivre, em português bagunçado) com o SKU selado certo do registry. Cada
+# SKU é definido por listas de termos CURADAS (set_terms/type_terms/exclude_terms/
+# requires_terms) — esses termos são DADO fixo (vêm do registry, não devem ser
+# inventados/alterados aqui). O que se evolui é COMO comparar o título com esses
+# termos: normalização, match por palavra-inteira vs fuzzy, guards de fora-de-
+# escopo (carta avulsa / acessório / outro idioma / outro jogo), e o desempate de
+# "guarda-chuva de era".
+#
+# Contrato exigido pelo evaluator:
+#   match_title(title: str, skus: list[dict]) -> list[str]
+#       skus: cada dict tem id, set_terms, type_terms, exclude_terms,
+#             requires_terms, era_umbrella(bool).
+#       retorna a lista de sku ids candidatos (0 = NONE; 1 = HIGH; 2+ = REVIEW).
+#
+# REGRA DE OURO (precision-first): casar o SKU ERRADO = margem fantasma = o
+# operador perde dinheiro. Um falso-positivo é MUITO pior que um falso-negativo.
+# Na dúvida, NÃO casar.
+import re
+import unicodedata
+
+CARD_NUMBER_RE = re.compile(r"\b\d{1,3}\s*/\s*\d{1,3}\b")
+_PROMO_SINGLE_RE = re.compile(r"\bsvp\s*\d+\b")
+
+_SINGLE_CARD_TOKENS = (
+    "single card", "carta avulsa", "cartas avulsas", "carta unica", "cartas unicas",
+)
+_ACCESSORY_TOKENS = (
+    "acessorio", "acessorios", "porta carta", "porta cartas", "porta card",
+    "porta deck", "toploader", "top loader", "playmat", "tapete", "deck shield",
+    "deck box", "sleeve shield", "deck protector",
+)
+
+
+def normalize(text):
+    if not text:
+        return ""
+    decomposed = unicodedata.normalize("NFKD", str(text))
+    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
+    cleaned = "".join(c if c.isalnum() else " " for c in stripped.lower())
+    return " ".join(cleaned.split())
+
+
+def contains_term(haystack_norm, term):
+    # match por palavra inteira (evita 'tin' casar dentro de 'trainer').
+    return f" {normalize(term)} " in f" {haystack_norm} "
+
+
+def looks_like_single_card(title):
+    norm = normalize(title)
+    if any(tok in norm for tok in _SINGLE_CARD_TOKENS):
+        return True
+    if _PROMO_SINGLE_RE.search(norm):
+        return True
+    if CARD_NUMBER_RE.search(title):
+        return True
+    return False
+
+
+def looks_like_accessory(title):
+    norm = normalize(title)
+    return any(tok in norm for tok in _ACCESSORY_TOKENS)
+
+
+def match_title(title, skus):
+    if looks_like_single_card(title) or looks_like_accessory(title):
+        return []
+    norm = normalize(title)
+    candidates = []
+    for sku in skus:
+        if not any(contains_term(norm, t) for t in sku.get("set_terms", [])):
+            continue
+        if not any(contains_term(norm, t) for t in sku.get("type_terms", [])):
+            continue
+        req = sku.get("requires_terms", [])
+        if req and not all(contains_term(norm, t) for t in req):
+            continue
+        if any(contains_term(norm, t) for t in sku.get("exclude_terms", [])):
+            continue
+        candidates.append(sku)
+
+    # Desempate guarda-chuva de era: um SKU cujo set é nome de ERA (era_umbrella)
+    # perde se um SKU de sub-set específico também casou.
+    specific = [c for c in candidates if not c.get("era_umbrella")]
+    if specific and len(specific) < len(candidates):
+        candidates = specific
+    return [c["id"] for c in candidates]

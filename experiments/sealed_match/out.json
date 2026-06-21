@@ -1,0 +1,440 @@
+{
+  "success": true,
+  "eval_score": 1.0,
+  "combined_score": 1.0,
+  "eval_time": 0.035,
+  "temp": {
+    "eval_score": 1.0,
+    "f1": 1.0,
+    "fbeta05": 1.0,
+    "precision_floor": 0.95,
+    "precision": 1.0,
+    "recall": 1.0,
+    "accuracy": 1.0,
+    "counts": {
+      "tp": 40,
+      "fp": 0,
+      "fn": 0,
+      "tn": 16,
+      "n": 56
+    },
+    "decisions": [
+      {
+        "case": 0,
+        "gold": "scr-booster-box-en",
+        "got": [
+          "scr-booster-box-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 1,
+        "gold": "meg-booster-bundle",
+        "got": [
+          "meg-booster-bundle"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 2,
+        "gold": "blk-tech-sticker",
+        "got": [
+          "blk-tech-sticker"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 3,
+        "gold": "wht-tech-sticker",
+        "got": [
+          "wht-tech-sticker"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 4,
+        "gold": "phf-pack-en",
+        "got": [
+          "phf-pack-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 5,
+        "gold": "wht-sleeved-booster",
+        "got": [
+          "wht-sleeved-booster"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 6,
+        "gold": "pal-sleeved-booster",
+        "got": [
+          "pal-sleeved-booster"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 7,
+        "gold": "dri-pack-en",
+        "got": [
+          "dri-pack-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 8,
+        "gold": "jtg-bundle-en",
+        "got": [
+          "jtg-bundle-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 9,
+        "gold": "jtg-etb-en",
+        "got": [
+          "jtg-etb-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 10,
+        "gold": "jtg-pack-en",
+        "got": [
+          "jtg-pack-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 11,
+        "gold": "cr-box-en",
+        "got": [
+          "cr-box-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 12,
+        "gold": "po-bundle-en",
+        "got": [
+          "po-bundle-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 13,
+        "gold": "asc-tech-sticker",
+        "got": [
+          "asc-tech-sticker"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 14,
+        "gold": "meg-sleeved-booster",
+        "got": [
+          "meg-sleeved-booster"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 15,
+        "gold": "meg-booster-box",
+        "got": [
+          "meg-booster-box"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 16,
+        "gold": "ah-pack-en",
+        "got": [
+          "ah-pack-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 17,
+        "gold": "phf-bundle-en",
+        "got": [
+          "phf-bundle-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 18,
+        "gold": "po-etb-en",
+        "got": [
+          "po-etb-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 19,
+        "gold": "po-box-en",
+        "got": [
+          "po-box-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 20,
+        "gold": "cr-bundle-en",
+        "got": [
+          "cr-bundle-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 21,
+        "gold": "ssp-pack-en",
+        "got": [
+          "ssp-pack-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 22,
+        "gold": "wht-booster-bundle",
+        "got": [
+          "wht-booster-bundle"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 23,
+        "gold": "cr-pack-en",
+        "got": [
+          "cr-pack-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 24,
+        "gold": "dri-bundle-en",
+        "got": [
+          "dri-bundle-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 25,
+        "gold": "wht-collection-box",
+        "got": [
+          "wht-collection-box"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 26,
+        "gold": "ah-etb-en",
+        "got": [
+          "ah-etb-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 27,
+        "gold": "cr-etb-en",
+        "got": [
+          "cr-etb-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 28,
+        "gold": "ah-bundle-en",
+        "got": [
+          "ah-bundle-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 29,
+        "gold": "po-pack-en",
+        "got": [
+          "po-pack-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 30,
+        "gold": "tef-pack-en",
+        "got": [
+          "tef-pack-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 31,
+        "gold": "sfa-booster-bundle",
+        "got": [
+          "sfa-booster-bundle"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 32,
+        "gold": "mew-pack-en",
+        "got": [
+          "mew-pack-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 33,
+        "gold": "phf-box-en",
+        "got": [
+          "phf-box-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 34,
+        "gold": "par-sleeved-booster",
+        "got": [
+          "par-sleeved-booster"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 35,
+        "gold": "jtg-box-en",
+        "got": [
+          "jtg-box-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 36,
+        "gold": "wht-elite-trainer-box",
+        "got": [
+          "wht-elite-trainer-box"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 37,
+        "gold": "phf-etb-en",
+        "got": [
+          "phf-etb-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 38,
+        "gold": "pre-etb-en",
+        "got": [
+          "pre-etb-en"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 39,
+        "gold": "blk-booster-bundle",
+        "got": [
+          "blk-booster-bundle"
+        ],
+        "outcome": "TP"
+      },
+      {
+        "case": 40,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 41,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 42,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 43,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 44,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 45,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 46,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 47,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 48,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 49,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 50,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 51,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 52,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 53,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 54,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      },
+      {
+        "case": 55,
+        "gold": null,
+        "got": [],
+        "outcome": "TN"
+      }
+    ]
+  }
+}

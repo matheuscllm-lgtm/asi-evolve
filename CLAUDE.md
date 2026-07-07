@@ -57,7 +57,8 @@ experimentos da frota vêm configurados para `https://api.openai.com/v1` com
 
 ```bash
 bash experiments/liga_match/eval.sh experiments/liga_match/initial_program
-cat results.json   # escreve no diretório atual; esperado: success:true, eval_score ≈ 0.75
+cat results.json   # escreve no diretório atual; esperado: success:true, eval_score ≈ 0.63
+                   # (F1 do baseline no eval ENRIQUECIDO de 33 casos; o ≈0.75 antigo era do eval original de 12)
 ```
 
 ### Rodar uma evolução (fluxo canônico)
@@ -197,7 +198,7 @@ Estrutura padrão de um experimento (`experiments/<nome>/`):
 
 | Experimento | Alvo (repo da frota) | Estado (HANDOFF, 2026-06-18/20) |
 |---|---|---|
-| **`liga_match`** | scorer de matching Liga↔TCGplayer (`liga-cards-scanner/src/matching/`) — contrato: `score_match(...) -> float` + `FUZZY_THRESHOLD` | ✅ **único port limpo**: baseline F1 0,75 → candidato 0,8889; eval enriquecido p/ 33 casos confirmou generalização; ideia portada à mão (PR `liga-cards-scanner#25`, mergeado) |
+| **`liga_match`** | scorer de matching Liga↔TCGplayer (`liga-cards-scanner/src/matching/`) — contrato: `score_match(...) -> float` + `FUZZY_THRESHOLD` | ✅ **único port limpo**: baseline F1 0,75 → candidato 0,8889 (medidos no eval ORIGINAL de 12 casos); o eval enriquecido p/ 33 casos confirmou generalização (0,63 → 0,90); ideia portada à mão (PR `liga-cards-scanner#25`, mergeado) |
 | **`myp_match`** | classificador deal limpo vs false-positive do MYP (supranumerário / TCG suspect) | ❌ run de 30 steps empacou no baseline 0,875 — **não portado**; só rende com eval enriquecido com dado real |
 | **`comc_tiers`** | calibração dos tiers de confiança do matcher do COMC | ❌ bateu 1,0 por overfit de fronteira; eval enriquecido revelou troca precisão↔recall (0,90→0,81) — **não portado** (COMC é precision-first) |
 | **`cardtrader_vintage`** | guard de false-positive vintage do CardTrader (`classify_decision`: rotear `low_conf_variant` + suspect-sets p/ REVISAR) — contrato: `classify_listing(row) -> (decision, reason)` | ⏳ scaffold pronto e validado offline (baseline F1 0,818, prec 1,0; headroom real até 1,0). **PENDENTE rodar o loop LLM no terminal local** |
@@ -235,7 +236,8 @@ verificação é operacional:
 ## Fluxo de desenvolvimento e segurança
 
 - **Branch + PR, nunca push direto em `main`** — é como todo o histórico foi
-  construído (PRs #1–#5 mergeados; regra inviolável nº 1 do HANDOFF §0). PRs de
+  construído (PRs #1, #2 e #4–#6 mergeados — o #3 foi fechado sem merge; regra
+  inviolável nº 1 do HANDOFF §0). PRs de
   trabalho autônomo saem como **draft**.
 - **Artefatos de run NUNCA entram no repo** (gitignored de propósito):
   `experiments/*/results.json`, `eval.log`, `database_data/`, `cognition_data/`,

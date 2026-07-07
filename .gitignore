@@ -5,7 +5,7 @@
 
 # ASI-Evolve experiment runtime artifacts (generated per run)
 experiments/*/results.json
-experiments/*/eval.log
+experiments/*/*.log
 experiments/*/database_data/
 experiments/*/cognition_data/
 experiments/*/steps/
